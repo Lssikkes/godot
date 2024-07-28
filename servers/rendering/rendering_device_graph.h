@@ -82,6 +82,15 @@ public:
 		Type type = TYPE_NONE;
 	};
 
+	struct CustomListInstruction {
+		enum Type {
+			TYPE_NONE,
+			TYPE_USER_COMMAND,
+		};
+
+		Type type = TYPE_NONE;
+	};
+
 	struct RecordedCommand {
 		enum Type {
 			TYPE_NONE,
@@ -91,6 +100,7 @@ public:
 			TYPE_BUFFER_UPDATE,
 			TYPE_COMPUTE_LIST,
 			TYPE_DRAW_LIST,
+			TYPE_CUSTOM_LIST,
 			TYPE_TEXTURE_CLEAR,
 			TYPE_TEXTURE_COPY,
 			TYPE_TEXTURE_GET_DATA,
@@ -127,26 +137,7 @@ public:
 		RDD::BufferTextureCopyRegion region;
 	};
 
-	enum ResourceUsage {
-		RESOURCE_USAGE_NONE,
-		RESOURCE_USAGE_COPY_FROM,
-		RESOURCE_USAGE_COPY_TO,
-		RESOURCE_USAGE_RESOLVE_FROM,
-		RESOURCE_USAGE_RESOLVE_TO,
-		RESOURCE_USAGE_UNIFORM_BUFFER_READ,
-		RESOURCE_USAGE_INDIRECT_BUFFER_READ,
-		RESOURCE_USAGE_TEXTURE_BUFFER_READ,
-		RESOURCE_USAGE_TEXTURE_BUFFER_READ_WRITE,
-		RESOURCE_USAGE_STORAGE_BUFFER_READ,
-		RESOURCE_USAGE_STORAGE_BUFFER_READ_WRITE,
-		RESOURCE_USAGE_VERTEX_BUFFER_READ,
-		RESOURCE_USAGE_INDEX_BUFFER_READ,
-		RESOURCE_USAGE_TEXTURE_SAMPLE,
-		RESOURCE_USAGE_STORAGE_IMAGE_READ,
-		RESOURCE_USAGE_STORAGE_IMAGE_READ_WRITE,
-		RESOURCE_USAGE_ATTACHMENT_COLOR_READ_WRITE,
-		RESOURCE_USAGE_ATTACHMENT_DEPTH_STENCIL_READ_WRITE
-	};
+	typedef RenderingDeviceCommons::ResourceUsage ResourceUsage;
 
 	struct ResourceTracker {
 		uint32_t reference_count = 0;
@@ -155,10 +146,12 @@ public:
 		int32_t read_slice_command_list_index = -1;
 		int32_t write_command_or_list_index = -1;
 		int32_t draw_list_index = -1;
-		ResourceUsage draw_list_usage = RESOURCE_USAGE_NONE;
+		ResourceUsage draw_list_usage = ResourceUsage::RESOURCE_USAGE_NONE;
 		int32_t compute_list_index = -1;
-		ResourceUsage compute_list_usage = RESOURCE_USAGE_NONE;
-		ResourceUsage usage = RESOURCE_USAGE_NONE;
+		ResourceUsage compute_list_usage = ResourceUsage::RESOURCE_USAGE_NONE;
+		int32_t custom_list_index = -1;
+		ResourceUsage custom_list_usage = ResourceUsage::RESOURCE_USAGE_NONE;
+		ResourceUsage usage = ResourceUsage::RESOURCE_USAGE_NONE;
 		BitField<RDD::BarrierAccessBits> usage_access;
 		RDD::BufferID buffer_driver_id;
 		RDD::TextureID texture_driver_id;
@@ -181,6 +174,7 @@ public:
 				write_command_or_list_index = -1;
 				draw_list_index = -1;
 				compute_list_index = -1;
+				custom_list_index = -1;
 				texture_slice_command_index = -1;
 				write_command_list_enabled = false;
 			}
@@ -226,6 +220,10 @@ private:
 		RDD::FramebufferID framebuffer;
 		Rect2i region;
 		LocalVector<RDD::RenderPassClearValue> clear_values;
+	};
+
+	struct CustomInstructionList : InstructionList {
+		// No extra contents.
 	};
 
 	struct RecordedCommandSort {
@@ -295,6 +293,18 @@ private:
 	};
 
 	struct RecordedComputeListCommand : RecordedCommand {
+		uint32_t instruction_data_size = 0;
+
+		_FORCE_INLINE_ uint8_t *instruction_data() {
+			return reinterpret_cast<uint8_t *>(&this[1]);
+		}
+
+		_FORCE_INLINE_ const uint8_t *instruction_data() const {
+			return reinterpret_cast<const uint8_t *>(&this[1]);
+		}
+	};
+
+	struct RecordedCustomListCommand : RecordedCommand {
 		uint32_t instruction_data_size = 0;
 
 		_FORCE_INLINE_ uint8_t *instruction_data() {
@@ -547,6 +557,11 @@ private:
 		uint32_t set_index = 0;
 	};
 
+	struct CustomListUserCommandInstruction : CustomListInstruction {
+		RDD::CustomRenderGraphCallback callback;
+		void *custom;
+	};
+
 	struct BarrierGroup {
 		BitField<RDD::PipelineStageBits> src_stages;
 		BitField<RDD::PipelineStageBits> dst_stages;
@@ -598,6 +613,7 @@ private:
 	int32_t command_label_index = -1;
 	DrawInstructionList draw_instruction_list;
 	ComputeInstructionList compute_instruction_list;
+	CustomInstructionList custom_instruction_list;
 	uint32_t command_count = 0;
 	uint32_t command_label_count = 0;
 	LocalVector<RecordedCommandListNode> command_list_nodes;
@@ -627,6 +643,7 @@ private:
 	RecordedCommand *_allocate_command(uint32_t p_command_size, int32_t &r_command_index);
 	DrawListInstruction *_allocate_draw_list_instruction(uint32_t p_instruction_size);
 	ComputeListInstruction *_allocate_compute_list_instruction(uint32_t p_instruction_size);
+	CustomListInstruction *_allocate_custom_list_instruction(uint32_t p_instruction_size);
 	void _add_command_to_graph(ResourceTracker **p_resource_trackers, ResourceUsage *p_resource_usages, uint32_t p_resource_count, int32_t p_command_index, RecordedCommand *r_command);
 	void _add_texture_barrier_to_command(RDD::TextureID p_texture_id, BitField<RDD::BarrierAccessBits> p_src_access, BitField<RDD::BarrierAccessBits> p_dst_access, ResourceUsage p_prev_usage, ResourceUsage p_next_usage, RDD::TextureSubresourceRange p_subresources, LocalVector<RDD::TextureBarrier> &r_barrier_vector, int32_t &r_barrier_index, int32_t &r_barrier_count);
 #if USE_BUFFER_BARRIERS
@@ -634,6 +651,7 @@ private:
 #endif
 	void _run_compute_list_command(RDD::CommandBufferID p_command_buffer, const uint8_t *p_instruction_data, uint32_t p_instruction_data_size);
 	void _run_draw_list_command(RDD::CommandBufferID p_command_buffer, const uint8_t *p_instruction_data, uint32_t p_instruction_data_size);
+	void _run_custom_list_command(RDD::CommandBufferID p_command_buffer, const uint8_t *p_instruction_data, uint32_t p_instruction_data_size);
 	void _run_secondary_command_buffer_task(const SecondaryCommandBuffer *p_secondary);
 	void _wait_for_secondary_command_buffer_tasks();
 	void _run_render_commands(int32_t p_level, const RecordedCommandSort *p_sorted_commands, uint32_t p_sorted_commands_count, RDD::CommandBufferID &r_command_buffer, CommandBufferPool &r_command_buffer_pool, int32_t &r_current_label_index, int32_t &r_current_label_level);
@@ -683,6 +701,11 @@ public:
 	void add_draw_list_usage(ResourceTracker *p_tracker, ResourceUsage p_usage);
 	void add_draw_list_usages(VectorView<ResourceTracker *> p_trackers, VectorView<ResourceUsage> p_usages);
 	void add_draw_list_end();
+	void add_custom_list_begin();
+	void add_custom_list_callback(RDD::CustomRenderGraphCallback p_callback, void *p_custom);
+	void add_custom_list_usage(ResourceTracker *p_tracker, ResourceUsage p_usage);
+	void add_custom_list_usages(VectorView<ResourceTracker *> p_trackers, VectorView<ResourceUsage> p_usages);
+	void add_custom_list_end();
 	void add_texture_clear(RDD::TextureID p_dst, ResourceTracker *p_dst_tracker, const Color &p_color, const RDD::TextureSubresourceRange &p_range);
 	void add_texture_copy(RDD::TextureID p_src, ResourceTracker *p_src_tracker, RDD::TextureID p_dst, ResourceTracker *p_dst_tracker, VectorView<RDD::TextureCopyRegion> p_texture_copy_regions);
 	void add_texture_get_data(RDD::TextureID p_src, ResourceTracker *p_src_tracker, RDD::BufferID p_dst, VectorView<RDD::BufferTextureCopyRegion> p_buffer_texture_copy_regions, ResourceTracker *p_dst_tracker = nullptr);

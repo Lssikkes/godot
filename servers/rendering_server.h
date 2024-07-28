@@ -866,6 +866,7 @@ public:
 		VIEWPORT_SCALING_3D_MODE_BILINEAR,
 		VIEWPORT_SCALING_3D_MODE_FSR,
 		VIEWPORT_SCALING_3D_MODE_FSR2,
+		VIEWPORT_SCALING_3D_MODE_DLSS,
 		VIEWPORT_SCALING_3D_MODE_MAX,
 		VIEWPORT_SCALING_3D_MODE_OFF = 255, // for internal use only
 	};
@@ -881,6 +882,7 @@ public:
 
 	virtual void viewport_set_scaling_3d_mode(RID p_viewport, ViewportScaling3DMode p_scaling_3d_mode) = 0;
 	virtual void viewport_set_scaling_3d_scale(RID p_viewport, float p_scaling_3d_scale) = 0;
+	virtual void viewport_set_frame_generation(RID p_viewport, bool p_frame_generation) = 0;
 	virtual void viewport_set_fsr_sharpness(RID p_viewport, float p_fsr_sharpness) = 0;
 	virtual void viewport_set_texture_mipmap_bias(RID p_viewport, float p_texture_mipmap_bias) = 0;
 

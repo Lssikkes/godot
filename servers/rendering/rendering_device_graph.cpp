@@ -45,24 +45,24 @@ RenderingDeviceGraph::~RenderingDeviceGraph() {
 
 bool RenderingDeviceGraph::_is_write_usage(ResourceUsage p_usage) {
 	switch (p_usage) {
-		case RESOURCE_USAGE_COPY_FROM:
-		case RESOURCE_USAGE_RESOLVE_FROM:
-		case RESOURCE_USAGE_UNIFORM_BUFFER_READ:
-		case RESOURCE_USAGE_INDIRECT_BUFFER_READ:
-		case RESOURCE_USAGE_TEXTURE_BUFFER_READ:
-		case RESOURCE_USAGE_STORAGE_BUFFER_READ:
-		case RESOURCE_USAGE_VERTEX_BUFFER_READ:
-		case RESOURCE_USAGE_INDEX_BUFFER_READ:
-		case RESOURCE_USAGE_TEXTURE_SAMPLE:
-		case RESOURCE_USAGE_STORAGE_IMAGE_READ:
+		case ResourceUsage::RESOURCE_USAGE_COPY_FROM:
+		case ResourceUsage::RESOURCE_USAGE_RESOLVE_FROM:
+		case ResourceUsage::RESOURCE_USAGE_UNIFORM_BUFFER_READ:
+		case ResourceUsage::RESOURCE_USAGE_INDIRECT_BUFFER_READ:
+		case ResourceUsage::RESOURCE_USAGE_TEXTURE_BUFFER_READ:
+		case ResourceUsage::RESOURCE_USAGE_STORAGE_BUFFER_READ:
+		case ResourceUsage::RESOURCE_USAGE_VERTEX_BUFFER_READ:
+		case ResourceUsage::RESOURCE_USAGE_INDEX_BUFFER_READ:
+		case ResourceUsage::RESOURCE_USAGE_TEXTURE_SAMPLE:
+		case ResourceUsage::RESOURCE_USAGE_STORAGE_IMAGE_READ:
 			return false;
-		case RESOURCE_USAGE_COPY_TO:
-		case RESOURCE_USAGE_RESOLVE_TO:
-		case RESOURCE_USAGE_TEXTURE_BUFFER_READ_WRITE:
-		case RESOURCE_USAGE_STORAGE_BUFFER_READ_WRITE:
-		case RESOURCE_USAGE_STORAGE_IMAGE_READ_WRITE:
-		case RESOURCE_USAGE_ATTACHMENT_COLOR_READ_WRITE:
-		case RESOURCE_USAGE_ATTACHMENT_DEPTH_STENCIL_READ_WRITE:
+		case ResourceUsage::RESOURCE_USAGE_COPY_TO:
+		case ResourceUsage::RESOURCE_USAGE_RESOLVE_TO:
+		case ResourceUsage::RESOURCE_USAGE_TEXTURE_BUFFER_READ_WRITE:
+		case ResourceUsage::RESOURCE_USAGE_STORAGE_BUFFER_READ_WRITE:
+		case ResourceUsage::RESOURCE_USAGE_STORAGE_IMAGE_READ_WRITE:
+		case ResourceUsage::RESOURCE_USAGE_ATTACHMENT_COLOR_READ_WRITE:
+		case ResourceUsage::RESOURCE_USAGE_ATTACHMENT_DEPTH_STENCIL_READ_WRITE:
 			return true;
 		default:
 			DEV_ASSERT(false && "Invalid resource tracker usage.");
@@ -72,24 +72,24 @@ bool RenderingDeviceGraph::_is_write_usage(ResourceUsage p_usage) {
 
 RDD::TextureLayout RenderingDeviceGraph::_usage_to_image_layout(ResourceUsage p_usage) {
 	switch (p_usage) {
-		case RESOURCE_USAGE_COPY_FROM:
+		case ResourceUsage::RESOURCE_USAGE_COPY_FROM:
 			return RDD::TEXTURE_LAYOUT_COPY_SRC_OPTIMAL;
-		case RESOURCE_USAGE_COPY_TO:
+		case ResourceUsage::RESOURCE_USAGE_COPY_TO:
 			return RDD::TEXTURE_LAYOUT_COPY_DST_OPTIMAL;
-		case RESOURCE_USAGE_RESOLVE_FROM:
+		case ResourceUsage::RESOURCE_USAGE_RESOLVE_FROM:
 			return RDD::TEXTURE_LAYOUT_RESOLVE_SRC_OPTIMAL;
-		case RESOURCE_USAGE_RESOLVE_TO:
+		case ResourceUsage::RESOURCE_USAGE_RESOLVE_TO:
 			return RDD::TEXTURE_LAYOUT_RESOLVE_DST_OPTIMAL;
-		case RESOURCE_USAGE_TEXTURE_SAMPLE:
+		case ResourceUsage::RESOURCE_USAGE_TEXTURE_SAMPLE:
 			return RDD::TEXTURE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		case RESOURCE_USAGE_STORAGE_IMAGE_READ:
-		case RESOURCE_USAGE_STORAGE_IMAGE_READ_WRITE:
+		case ResourceUsage::RESOURCE_USAGE_STORAGE_IMAGE_READ:
+		case ResourceUsage::RESOURCE_USAGE_STORAGE_IMAGE_READ_WRITE:
 			return RDD::TEXTURE_LAYOUT_STORAGE_OPTIMAL;
-		case RESOURCE_USAGE_ATTACHMENT_COLOR_READ_WRITE:
+		case ResourceUsage::RESOURCE_USAGE_ATTACHMENT_COLOR_READ_WRITE:
 			return RDD::TEXTURE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		case RESOURCE_USAGE_ATTACHMENT_DEPTH_STENCIL_READ_WRITE:
+		case ResourceUsage::RESOURCE_USAGE_ATTACHMENT_DEPTH_STENCIL_READ_WRITE:
 			return RDD::TEXTURE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		case RESOURCE_USAGE_NONE:
+		case ResourceUsage::RESOURCE_USAGE_NONE:
 			return RDD::TEXTURE_LAYOUT_UNDEFINED;
 		default:
 			DEV_ASSERT(false && "Invalid resource tracker usage or not an image usage.");
@@ -102,36 +102,36 @@ RDD::BarrierAccessBits RenderingDeviceGraph::_usage_to_access_bits(ResourceUsage
 	return RDD::BarrierAccessBits(RDD::BARRIER_ACCESS_MEMORY_READ_BIT | RDD::BARRIER_ACCESS_MEMORY_WRITE_BIT);
 #else
 	switch (p_usage) {
-		case RESOURCE_USAGE_NONE:
+		case ResourceUsage::RESOURCE_USAGE_NONE:
 			return RDD::BarrierAccessBits(0);
-		case RESOURCE_USAGE_COPY_FROM:
+		case ResourceUsage::RESOURCE_USAGE_COPY_FROM:
 			return RDD::BARRIER_ACCESS_COPY_READ_BIT;
-		case RESOURCE_USAGE_COPY_TO:
+		case ResourceUsage::RESOURCE_USAGE_COPY_TO:
 			return RDD::BARRIER_ACCESS_COPY_WRITE_BIT;
-		case RESOURCE_USAGE_RESOLVE_FROM:
+		case ResourceUsage::RESOURCE_USAGE_RESOLVE_FROM:
 			return RDD::BARRIER_ACCESS_RESOLVE_READ_BIT;
-		case RESOURCE_USAGE_RESOLVE_TO:
+		case ResourceUsage::RESOURCE_USAGE_RESOLVE_TO:
 			return RDD::BARRIER_ACCESS_RESOLVE_WRITE_BIT;
-		case RESOURCE_USAGE_UNIFORM_BUFFER_READ:
+		case ResourceUsage::RESOURCE_USAGE_UNIFORM_BUFFER_READ:
 			return RDD::BARRIER_ACCESS_UNIFORM_READ_BIT;
-		case RESOURCE_USAGE_INDIRECT_BUFFER_READ:
+		case ResourceUsage::RESOURCE_USAGE_INDIRECT_BUFFER_READ:
 			return RDD::BARRIER_ACCESS_INDIRECT_COMMAND_READ_BIT;
-		case RESOURCE_USAGE_STORAGE_BUFFER_READ:
-		case RESOURCE_USAGE_STORAGE_IMAGE_READ:
-		case RESOURCE_USAGE_TEXTURE_BUFFER_READ:
-		case RESOURCE_USAGE_TEXTURE_SAMPLE:
+		case ResourceUsage::RESOURCE_USAGE_STORAGE_BUFFER_READ:
+		case ResourceUsage::RESOURCE_USAGE_STORAGE_IMAGE_READ:
+		case ResourceUsage::RESOURCE_USAGE_TEXTURE_BUFFER_READ:
+		case ResourceUsage::RESOURCE_USAGE_TEXTURE_SAMPLE:
 			return RDD::BARRIER_ACCESS_SHADER_READ_BIT;
-		case RESOURCE_USAGE_TEXTURE_BUFFER_READ_WRITE:
-		case RESOURCE_USAGE_STORAGE_BUFFER_READ_WRITE:
-		case RESOURCE_USAGE_STORAGE_IMAGE_READ_WRITE:
+		case ResourceUsage::RESOURCE_USAGE_TEXTURE_BUFFER_READ_WRITE:
+		case ResourceUsage::RESOURCE_USAGE_STORAGE_BUFFER_READ_WRITE:
+		case ResourceUsage::RESOURCE_USAGE_STORAGE_IMAGE_READ_WRITE:
 			return RDD::BarrierAccessBits(RDD::BARRIER_ACCESS_SHADER_READ_BIT | RDD::BARRIER_ACCESS_SHADER_WRITE_BIT);
-		case RESOURCE_USAGE_VERTEX_BUFFER_READ:
+		case ResourceUsage::RESOURCE_USAGE_VERTEX_BUFFER_READ:
 			return RDD::BARRIER_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
-		case RESOURCE_USAGE_INDEX_BUFFER_READ:
+		case ResourceUsage::RESOURCE_USAGE_INDEX_BUFFER_READ:
 			return RDD::BARRIER_ACCESS_INDEX_READ_BIT;
-		case RESOURCE_USAGE_ATTACHMENT_COLOR_READ_WRITE:
+		case ResourceUsage::RESOURCE_USAGE_ATTACHMENT_COLOR_READ_WRITE:
 			return RDD::BarrierAccessBits(RDD::BARRIER_ACCESS_COLOR_ATTACHMENT_READ_BIT | RDD::BARRIER_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-		case RESOURCE_USAGE_ATTACHMENT_DEPTH_STENCIL_READ_WRITE:
+		case ResourceUsage::RESOURCE_USAGE_ATTACHMENT_DEPTH_STENCIL_READ_WRITE:
 			return RDD::BarrierAccessBits(RDD::BARRIER_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | RDD::BARRIER_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 		default:
 			DEV_ASSERT(false && "Invalid usage.");
@@ -211,6 +211,12 @@ RenderingDeviceGraph::ComputeListInstruction *RenderingDeviceGraph::_allocate_co
 	return reinterpret_cast<ComputeListInstruction *>(&compute_instruction_list.data[compute_list_data_offset]);
 }
 
+RenderingDeviceGraph::CustomListInstruction *RenderingDeviceGraph::_allocate_custom_list_instruction(uint32_t p_instruction_size) {
+	uint32_t custom_list_data_offset = custom_instruction_list.data.size();
+	custom_instruction_list.data.resize(custom_list_data_offset + p_instruction_size);
+	return reinterpret_cast<CustomListInstruction *>(&custom_instruction_list.data[custom_list_data_offset]);
+}
+
 void RenderingDeviceGraph::_add_command_to_graph(ResourceTracker **p_resource_trackers, ResourceUsage *p_resource_usages, uint32_t p_resource_count, int32_t p_command_index, RecordedCommand *r_command) {
 	// Assign the next stages derived from the stages the command requires first.
 	r_command->next_stages = r_command->self_stages;
@@ -271,10 +277,10 @@ void RenderingDeviceGraph::_add_command_to_graph(ResourceTracker **p_resource_tr
 				resource_tracker->texture_slice_command_index = p_command_index;
 			}
 
-			if (resource_tracker->parent->usage == RESOURCE_USAGE_NONE) {
+			if (resource_tracker->parent->usage == ResourceUsage::RESOURCE_USAGE_NONE) {
 				if (resource_tracker->parent->texture_driver_id.id != 0) {
 					// If the resource is a texture, we transition it entirely to the layout determined by the first slice that uses it.
-					_add_texture_barrier_to_command(resource_tracker->parent->texture_driver_id, RDD::BarrierAccessBits(0), new_usage_access, RDG::RESOURCE_USAGE_NONE, new_resource_usage, resource_tracker->parent->texture_subresources, command_normalization_barriers, r_command->normalization_barrier_index, r_command->normalization_barrier_count);
+					_add_texture_barrier_to_command(resource_tracker->parent->texture_driver_id, RDD::BarrierAccessBits(0), new_usage_access, RDG::ResourceUsage::RESOURCE_USAGE_NONE, new_resource_usage, resource_tracker->parent->texture_subresources, command_normalization_barriers, r_command->normalization_barrier_index, r_command->normalization_barrier_count);
 				}
 
 				// If the parent hasn't been used yet, we assign the usage of the slice to the entire resource.
@@ -748,6 +754,25 @@ void RenderingDeviceGraph::_run_draw_list_command(RDD::CommandBufferID p_command
 	}
 }
 
+void RenderingDeviceGraph::_run_custom_list_command(RDD::CommandBufferID p_command_buffer, const uint8_t *p_instruction_data, uint32_t p_instruction_data_size) {
+	uint32_t instruction_data_cursor = 0;
+	while (instruction_data_cursor < p_instruction_data_size) {
+		DEV_ASSERT((instruction_data_cursor + sizeof(CustomListInstruction)) <= p_instruction_data_size);
+
+		const CustomListInstruction *instruction = reinterpret_cast<const CustomListInstruction *>(&p_instruction_data[instruction_data_cursor]);
+		switch (instruction->type) {
+			case CustomListInstruction::TYPE_USER_COMMAND: {
+				const CustomListUserCommandInstruction *custom_user_command_instruction = reinterpret_cast<const CustomListUserCommandInstruction *>(instruction);
+				custom_user_command_instruction->callback(custom_user_command_instruction->custom, p_command_buffer);
+				instruction_data_cursor += sizeof(CustomListUserCommandInstruction);
+			} break;
+			default:
+				DEV_ASSERT(false && "Unknown custom list instruction type.");
+				return;
+		}
+	}
+}
+
 void RenderingDeviceGraph::_run_secondary_command_buffer_task(const SecondaryCommandBuffer *p_secondary) {
 	driver->command_buffer_begin_secondary(p_secondary->command_buffer, p_secondary->render_pass, 0, p_secondary->framebuffer);
 	_run_draw_list_command(p_secondary->command_buffer, p_secondary->instruction_data.ptr(), p_secondary->instruction_data.size());
@@ -826,6 +851,10 @@ void RenderingDeviceGraph::_run_render_commands(int32_t p_level, const RecordedC
 				driver->command_begin_render_pass(r_command_buffer, draw_list_command->render_pass, draw_list_command->framebuffer, draw_list_command->command_buffer_type, draw_list_command->region, clear_values);
 				_run_draw_list_command(r_command_buffer, draw_list_command->instruction_data(), draw_list_command->instruction_data_size);
 				driver->command_end_render_pass(r_command_buffer);
+			} break;
+			case RecordedCommand::TYPE_CUSTOM_LIST: {
+				const RecordedCustomListCommand *custom_list_command = reinterpret_cast<const RecordedCustomListCommand *>(command);
+				_run_custom_list_command(r_command_buffer, custom_list_command->instruction_data(), custom_list_command->instruction_data_size);
 			} break;
 			case RecordedCommand::TYPE_TEXTURE_CLEAR: {
 				const RecordedTextureClearCommand *texture_clear_command = reinterpret_cast<const RecordedTextureClearCommand *>(command);
@@ -1339,7 +1368,7 @@ void RenderingDeviceGraph::add_buffer_clear(RDD::BufferID p_dst, ResourceTracker
 	command->offset = p_offset;
 	command->size = p_size;
 
-	ResourceUsage usage = RESOURCE_USAGE_COPY_TO;
+	ResourceUsage usage = ResourceUsage::RESOURCE_USAGE_COPY_TO;
 	_add_command_to_graph(&p_dst_tracker, &usage, 1, command_index, command);
 }
 
@@ -1356,7 +1385,7 @@ void RenderingDeviceGraph::add_buffer_copy(RDD::BufferID p_src, ResourceTracker 
 	command->region = p_region;
 
 	ResourceTracker *trackers[2] = { p_dst_tracker, p_src_tracker };
-	ResourceUsage usages[2] = { RESOURCE_USAGE_COPY_TO, RESOURCE_USAGE_COPY_FROM };
+	ResourceUsage usages[2] = { ResourceUsage::RESOURCE_USAGE_COPY_TO, ResourceUsage::RESOURCE_USAGE_COPY_FROM };
 	_add_command_to_graph(trackers, usages, p_src_tracker != nullptr ? 2 : 1, command_index, command);
 }
 
@@ -1371,7 +1400,7 @@ void RenderingDeviceGraph::add_buffer_get_data(RDD::BufferID p_src, ResourceTrac
 	command->region = p_region;
 
 	if (p_src_tracker != nullptr) {
-		ResourceUsage usage = RESOURCE_USAGE_COPY_FROM;
+		ResourceUsage usage = ResourceUsage::RESOURCE_USAGE_COPY_FROM;
 		_add_command_to_graph(&p_src_tracker, &usage, 1, command_index, command);
 	} else {
 		_add_command_to_graph(nullptr, nullptr, 0, command_index, command);
@@ -1395,7 +1424,7 @@ void RenderingDeviceGraph::add_buffer_update(RDD::BufferID p_dst, ResourceTracke
 		buffer_copies[i] = p_buffer_copies[i];
 	}
 
-	ResourceUsage buffer_usage = RESOURCE_USAGE_COPY_TO;
+	ResourceUsage buffer_usage = ResourceUsage::RESOURCE_USAGE_COPY_TO;
 	_add_command_to_graph(&p_dst_tracker, &buffer_usage, 1, command_index, command);
 }
 
@@ -1717,6 +1746,56 @@ void RenderingDeviceGraph::add_draw_list_end() {
 	_add_command_to_graph(draw_instruction_list.command_trackers.ptr(), draw_instruction_list.command_tracker_usages.ptr(), draw_instruction_list.command_trackers.size(), command_index, command);
 }
 
+void RenderingDeviceGraph::add_custom_list_begin() {
+	custom_instruction_list.clear();
+	custom_instruction_list.index++;
+}
+
+void RenderingDeviceGraph::add_custom_list_callback(RDD::CustomRenderGraphCallback p_callback, void *p_custom) {
+	CustomListUserCommandInstruction *instruction = reinterpret_cast<CustomListUserCommandInstruction *>(_allocate_custom_list_instruction(sizeof(CustomListUserCommandInstruction)));
+	instruction->type = CustomListInstruction::TYPE_USER_COMMAND;
+	instruction->callback = p_callback;
+	instruction->custom = p_custom;
+}
+
+void RenderingDeviceGraph::add_custom_list_usage(ResourceTracker *p_tracker, ResourceUsage p_usage) {
+	DEV_ASSERT(p_tracker != nullptr);
+
+	p_tracker->reset_if_outdated(tracking_frame);
+
+	if (p_tracker->custom_list_index != custom_instruction_list.index) {
+		custom_instruction_list.command_trackers.push_back(p_tracker);
+		custom_instruction_list.command_tracker_usages.push_back(p_usage);
+		p_tracker->custom_list_index = custom_instruction_list.index;
+		p_tracker->custom_list_index = p_usage;
+	}
+#ifdef DEV_ENABLED
+	else if (p_tracker->custom_list_usage != p_usage) {
+		ERR_FAIL_MSG(vformat("Tracker can't have more than one type of usage in the same compute list. Custom list usage is %d and the requested usage is %d.", p_tracker->custom_list_usage, p_usage));
+	}
+#endif
+}
+
+void RenderingDeviceGraph::add_custom_list_usages(VectorView<ResourceTracker *> p_trackers, VectorView<ResourceUsage> p_usages) {
+	DEV_ASSERT(p_trackers.size() == p_usages.size());
+
+	for (uint32_t i = 0; i < p_trackers.size(); i++) {
+		add_custom_list_usage(p_trackers[i], p_usages[i]);
+	}
+}
+
+void RenderingDeviceGraph::add_custom_list_end() {
+	int32_t command_index;
+	uint32_t instruction_data_size = custom_instruction_list.data.size();
+	uint32_t command_size = sizeof(RecordedCustomListCommand) + instruction_data_size;
+	RecordedCustomListCommand *command = static_cast<RecordedCustomListCommand *>(_allocate_command(command_size, command_index));
+	command->type = RecordedCommand::TYPE_CUSTOM_LIST;
+	command->self_stages = custom_instruction_list.stages;
+	command->instruction_data_size = instruction_data_size;
+	memcpy(command->instruction_data(), custom_instruction_list.data.ptr(), instruction_data_size);
+	_add_command_to_graph(custom_instruction_list.command_trackers.ptr(), custom_instruction_list.command_tracker_usages.ptr(), custom_instruction_list.command_trackers.size(), command_index, command);
+}
+
 void RenderingDeviceGraph::add_texture_clear(RDD::TextureID p_dst, ResourceTracker *p_dst_tracker, const Color &p_color, const RDD::TextureSubresourceRange &p_range) {
 	DEV_ASSERT(p_dst_tracker != nullptr);
 
@@ -1730,16 +1809,16 @@ void RenderingDeviceGraph::add_texture_clear(RDD::TextureID p_dst, ResourceTrack
 	ResourceUsage usage;
 	if (driver_clears_with_copy_engine) {
 		command->self_stages = RDD::PIPELINE_STAGE_COPY_BIT;
-		usage = RESOURCE_USAGE_COPY_TO;
+		usage = ResourceUsage::RESOURCE_USAGE_COPY_TO;
 	} else {
 		// If the driver is uncapable of using the copy engine for clearing the image (e.g. D3D12), we must either transition the
 		// resource to a render target or a storage image as that's the only two ways it can perform the operation.
 		if (p_dst_tracker->texture_usage & RDD::TEXTURE_USAGE_COLOR_ATTACHMENT_BIT) {
 			command->self_stages = RDD::PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			usage = RESOURCE_USAGE_ATTACHMENT_COLOR_READ_WRITE;
+			usage = ResourceUsage::RESOURCE_USAGE_ATTACHMENT_COLOR_READ_WRITE;
 		} else {
 			command->self_stages = RDD::PIPELINE_STAGE_CLEAR_STORAGE_BIT;
-			usage = RESOURCE_USAGE_STORAGE_IMAGE_READ_WRITE;
+			usage = ResourceUsage::RESOURCE_USAGE_STORAGE_IMAGE_READ_WRITE;
 		}
 	}
 
@@ -1765,7 +1844,7 @@ void RenderingDeviceGraph::add_texture_copy(RDD::TextureID p_src, ResourceTracke
 	}
 
 	ResourceTracker *trackers[2] = { p_dst_tracker, p_src_tracker };
-	ResourceUsage usages[2] = { RESOURCE_USAGE_COPY_TO, RESOURCE_USAGE_COPY_FROM };
+	ResourceUsage usages[2] = { ResourceUsage::RESOURCE_USAGE_COPY_TO, ResourceUsage::RESOURCE_USAGE_COPY_FROM };
 	_add_command_to_graph(trackers, usages, 2, command_index, command);
 }
 
@@ -1789,10 +1868,10 @@ void RenderingDeviceGraph::add_texture_get_data(RDD::TextureID p_src, ResourceTr
 	if (p_dst_tracker != nullptr) {
 		// Add the optional destination tracker if it was provided.
 		ResourceTracker *trackers[2] = { p_dst_tracker, p_src_tracker };
-		ResourceUsage usages[2] = { RESOURCE_USAGE_COPY_TO, RESOURCE_USAGE_COPY_FROM };
+		ResourceUsage usages[2] = { ResourceUsage::RESOURCE_USAGE_COPY_TO, ResourceUsage::RESOURCE_USAGE_COPY_FROM };
 		_add_command_to_graph(trackers, usages, 2, command_index, command);
 	} else {
-		ResourceUsage usage = RESOURCE_USAGE_COPY_FROM;
+		ResourceUsage usage = ResourceUsage::RESOURCE_USAGE_COPY_FROM;
 		_add_command_to_graph(&p_src_tracker, &usage, 1, command_index, command);
 	}
 }
@@ -1813,7 +1892,7 @@ void RenderingDeviceGraph::add_texture_resolve(RDD::TextureID p_src, ResourceTra
 	command->dst_mipmap = p_dst_mipmap;
 
 	ResourceTracker *trackers[2] = { p_dst_tracker, p_src_tracker };
-	ResourceUsage usages[2] = { RESOURCE_USAGE_RESOLVE_TO, RESOURCE_USAGE_RESOLVE_FROM };
+	ResourceUsage usages[2] = { ResourceUsage::RESOURCE_USAGE_RESOLVE_TO, ResourceUsage::RESOURCE_USAGE_RESOLVE_FROM };
 	_add_command_to_graph(trackers, usages, 2, command_index, command);
 }
 
@@ -1841,15 +1920,15 @@ void RenderingDeviceGraph::add_texture_update(RDD::TextureID p_dst, ResourceTrac
 		usages.clear();
 		for (uint32_t i = 0; i < p_buffer_trackers.size(); i++) {
 			trackers.push_back(p_buffer_trackers[i]);
-			usages.push_back(RESOURCE_USAGE_COPY_FROM);
+			usages.push_back(ResourceUsage::RESOURCE_USAGE_COPY_FROM);
 		}
 
 		trackers.push_back(p_dst_tracker);
-		usages.push_back(RESOURCE_USAGE_COPY_TO);
+		usages.push_back(ResourceUsage::RESOURCE_USAGE_COPY_TO);
 
 		_add_command_to_graph(trackers.ptr(), usages.ptr(), trackers.size(), command_index, command);
 	} else {
-		ResourceUsage usage = RESOURCE_USAGE_COPY_TO;
+		ResourceUsage usage = ResourceUsage::RESOURCE_USAGE_COPY_TO;
 		_add_command_to_graph(&p_dst_tracker, &usage, 1, command_index, command);
 	}
 }
@@ -1957,8 +2036,9 @@ void RenderingDeviceGraph::end(bool p_reorder_commands, bool p_full_barriers, RD
 			1, // TYPE_BUFFER_COPY
 			1, // TYPE_BUFFER_GET_DATA
 			1, // TYPE_BUFFER_UPDATE
-			4, // TYPE_COMPUTE_LIST
-			3, // TYPE_DRAW_LIST
+			5, // TYPE_COMPUTE_LIST
+			4, // TYPE_DRAW_LIST
+			3, // TYPE_CUSTOM_LIST
 			2, // TYPE_TEXTURE_CLEAR
 			2, // TYPE_TEXTURE_COPY
 			2, // TYPE_TEXTURE_GET_DATA
