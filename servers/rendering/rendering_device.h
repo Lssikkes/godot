@@ -70,6 +70,7 @@ public:
 
 	typedef int64_t DrawListID;
 	typedef int64_t ComputeListID;
+	typedef int64_t CustomListID;
 
 	typedef String (*ShaderSPIRVGetCacheKeyFunction)(const RenderingDevice *p_render_device);
 	typedef Vector<uint8_t> (*ShaderCompileToSPIRVFunction)(ShaderStage p_stage, const String &p_source_code, ShaderLanguage p_language, String *r_error, const RenderingDevice *p_render_device);
@@ -113,6 +114,7 @@ public:
 		ID_TYPE_VERTEX_FORMAT,
 		ID_TYPE_DRAW_LIST,
 		ID_TYPE_COMPUTE_LIST = 4,
+		ID_TYPE_CUSTOM_LIST = 5,
 		ID_TYPE_MAX,
 		ID_BASE_SHIFT = 58, // 5 bits for ID types.
 		ID_MASK = (ID_BASE_SHIFT - 1),
@@ -1238,6 +1240,22 @@ public:
 	void compute_list_add_barrier(ComputeListID p_list);
 
 	void compute_list_end();
+
+private:
+	/***********************/
+	/**** CUSTOM LISTS ****/
+	/***********************/
+
+	struct CustomList {
+	};
+
+	CustomList *custom_list = nullptr;
+
+public:
+	CustomListID custom_list_begin();
+	void custom_list_require_texture(CustomListID p_list, RID p_texture, RenderingDeviceCommons::ResourceUsage p_usage);
+	void custom_list_callback(CustomListID p_list, RDD::CustomRenderGraphCallback p_callback, void *p_custom);
+	void custom_list_end();
 
 private:
 	/***********************/

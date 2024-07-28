@@ -844,7 +844,7 @@ RID RenderingDevice::texture_create(const TextureFormat &p_format, const Texture
 
 		if (texture.draw_tracker != nullptr) {
 			// Draw tracker can assume the texture will be in copy destination.
-			texture.draw_tracker->usage = RDG::RESOURCE_USAGE_COPY_TO;
+			texture.draw_tracker->usage = RDG::ResourceUsage::RESOURCE_USAGE_COPY_TO;
 		}
 	}
 
@@ -2912,9 +2912,9 @@ RID RenderingDevice::uniform_set_create(const Vector<Uniform> &p_uniforms, RID p
 
 					if (tracker != nullptr) {
 						draw_trackers.push_back(tracker);
-						draw_trackers_usage.push_back(RDG::RESOURCE_USAGE_TEXTURE_SAMPLE);
+						draw_trackers_usage.push_back(RDG::ResourceUsage::RESOURCE_USAGE_TEXTURE_SAMPLE);
 					} else {
-						untracked_usage[texture_id] = RDG::RESOURCE_USAGE_TEXTURE_SAMPLE;
+						untracked_usage[texture_id] = RDG::ResourceUsage::RESOURCE_USAGE_TEXTURE_SAMPLE;
 					}
 
 					DEV_ASSERT(!texture->owner.is_valid() || texture_owner.get_or_null(texture->owner));
@@ -2957,9 +2957,9 @@ RID RenderingDevice::uniform_set_create(const Vector<Uniform> &p_uniforms, RID p
 
 					if (tracker != nullptr) {
 						draw_trackers.push_back(tracker);
-						draw_trackers_usage.push_back(RDG::RESOURCE_USAGE_TEXTURE_SAMPLE);
+						draw_trackers_usage.push_back(RDG::ResourceUsage::RESOURCE_USAGE_TEXTURE_SAMPLE);
 					} else {
-						untracked_usage[texture_id] = RDG::RESOURCE_USAGE_TEXTURE_SAMPLE;
+						untracked_usage[texture_id] = RDG::ResourceUsage::RESOURCE_USAGE_TEXTURE_SAMPLE;
 					}
 
 					DEV_ASSERT(!texture->owner.is_valid() || texture_owner.get_or_null(texture->owner));
@@ -2999,9 +2999,9 @@ RID RenderingDevice::uniform_set_create(const Vector<Uniform> &p_uniforms, RID p
 						draw_trackers.push_back(texture->draw_tracker);
 
 						if (set_uniform.writable) {
-							draw_trackers_usage.push_back(RDG::RESOURCE_USAGE_STORAGE_IMAGE_READ_WRITE);
+							draw_trackers_usage.push_back(RDG::ResourceUsage::RESOURCE_USAGE_STORAGE_IMAGE_READ_WRITE);
 						} else {
-							draw_trackers_usage.push_back(RDG::RESOURCE_USAGE_STORAGE_IMAGE_READ);
+							draw_trackers_usage.push_back(RDG::ResourceUsage::RESOURCE_USAGE_STORAGE_IMAGE_READ);
 						}
 					}
 
@@ -3033,12 +3033,12 @@ RID RenderingDevice::uniform_set_create(const Vector<Uniform> &p_uniforms, RID p
 						draw_trackers.push_back(buffer->draw_tracker);
 
 						if (set_uniform.writable) {
-							draw_trackers_usage.push_back(RDG::RESOURCE_USAGE_TEXTURE_BUFFER_READ_WRITE);
+							draw_trackers_usage.push_back(RDG::ResourceUsage::RESOURCE_USAGE_TEXTURE_BUFFER_READ_WRITE);
 						} else {
-							draw_trackers_usage.push_back(RDG::RESOURCE_USAGE_TEXTURE_BUFFER_READ);
+							draw_trackers_usage.push_back(RDG::ResourceUsage::RESOURCE_USAGE_TEXTURE_BUFFER_READ);
 						}
 					} else {
-						untracked_usage[buffer_id] = RDG::RESOURCE_USAGE_TEXTURE_BUFFER_READ;
+						untracked_usage[buffer_id] = RDG::ResourceUsage::RESOURCE_USAGE_TEXTURE_BUFFER_READ;
 					}
 
 					driver_uniform.ids.push_back(buffer->driver_id);
@@ -3063,9 +3063,9 @@ RID RenderingDevice::uniform_set_create(const Vector<Uniform> &p_uniforms, RID p
 
 					if (buffer->draw_tracker != nullptr) {
 						draw_trackers.push_back(buffer->draw_tracker);
-						draw_trackers_usage.push_back(RDG::RESOURCE_USAGE_TEXTURE_BUFFER_READ);
+						draw_trackers_usage.push_back(RDG::ResourceUsage::RESOURCE_USAGE_TEXTURE_BUFFER_READ);
 					} else {
-						untracked_usage[buffer_id] = RDG::RESOURCE_USAGE_TEXTURE_BUFFER_READ;
+						untracked_usage[buffer_id] = RDG::ResourceUsage::RESOURCE_USAGE_TEXTURE_BUFFER_READ;
 					}
 
 					driver_uniform.ids.push_back(*sampler_driver_id);
@@ -3088,9 +3088,9 @@ RID RenderingDevice::uniform_set_create(const Vector<Uniform> &p_uniforms, RID p
 
 				if (buffer->draw_tracker != nullptr) {
 					draw_trackers.push_back(buffer->draw_tracker);
-					draw_trackers_usage.push_back(RDG::RESOURCE_USAGE_UNIFORM_BUFFER_READ);
+					draw_trackers_usage.push_back(RDG::ResourceUsage::RESOURCE_USAGE_UNIFORM_BUFFER_READ);
 				} else {
-					untracked_usage[buffer_id] = RDG::RESOURCE_USAGE_UNIFORM_BUFFER_READ;
+					untracked_usage[buffer_id] = RDG::ResourceUsage::RESOURCE_USAGE_UNIFORM_BUFFER_READ;
 				}
 
 				driver_uniform.ids.push_back(buffer->driver_id);
@@ -3124,12 +3124,12 @@ RID RenderingDevice::uniform_set_create(const Vector<Uniform> &p_uniforms, RID p
 					draw_trackers.push_back(buffer->draw_tracker);
 
 					if (set_uniform.writable) {
-						draw_trackers_usage.push_back(RDG::RESOURCE_USAGE_STORAGE_BUFFER_READ_WRITE);
+						draw_trackers_usage.push_back(RDG::ResourceUsage::RESOURCE_USAGE_STORAGE_BUFFER_READ_WRITE);
 					} else {
-						draw_trackers_usage.push_back(RDG::RESOURCE_USAGE_STORAGE_BUFFER_READ);
+						draw_trackers_usage.push_back(RDG::ResourceUsage::RESOURCE_USAGE_STORAGE_BUFFER_READ);
 					}
 				} else {
-					untracked_usage[buffer_id] = RDG::RESOURCE_USAGE_STORAGE_BUFFER_READ;
+					untracked_usage[buffer_id] = RDG::ResourceUsage::RESOURCE_USAGE_STORAGE_BUFFER_READ;
 				}
 
 				driver_uniform.ids.push_back(buffer->driver_id);
@@ -3675,13 +3675,13 @@ Error RenderingDevice::_draw_list_render_pass_begin(Framebuffer *p_framebuffer, 
 				}
 
 				resource_trackers.push_back(texture->draw_tracker);
-				resource_usages.push_back(RDG::RESOURCE_USAGE_ATTACHMENT_COLOR_READ_WRITE);
+				resource_usages.push_back(RDG::ResourceUsage::RESOURCE_USAGE_ATTACHMENT_COLOR_READ_WRITE);
 				uses_color = true;
 			} else if (texture->usage_flags & TEXTURE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) {
 				clear_value.depth = p_clear_depth;
 				clear_value.stencil = p_clear_stencil;
 				resource_trackers.push_back(texture->draw_tracker);
-				resource_usages.push_back(RDG::RESOURCE_USAGE_ATTACHMENT_DEPTH_STENCIL_READ_WRITE);
+				resource_usages.push_back(RDG::ResourceUsage::RESOURCE_USAGE_ATTACHMENT_DEPTH_STENCIL_READ_WRITE);
 				uses_depth = true;
 			}
 
@@ -3996,7 +3996,7 @@ void RenderingDevice::draw_list_bind_vertex_array(DrawListID p_list, RID p_verte
 	draw_graph.add_draw_list_bind_vertex_buffers(vertex_array->buffers, vertex_array->offsets);
 
 	for (int i = 0; i < vertex_array->draw_trackers.size(); i++) {
-		draw_graph.add_draw_list_usage(vertex_array->draw_trackers[i], RDG::RESOURCE_USAGE_VERTEX_BUFFER_READ);
+		draw_graph.add_draw_list_usage(vertex_array->draw_trackers[i], RDG::ResourceUsage::RESOURCE_USAGE_VERTEX_BUFFER_READ);
 	}
 }
 
@@ -4024,7 +4024,7 @@ void RenderingDevice::draw_list_bind_index_array(DrawListID p_list, RID p_index_
 	draw_graph.add_draw_list_bind_index_buffer(index_array->driver_id, index_array->format, offset_bytes);
 
 	if (index_array->draw_tracker != nullptr) {
-		draw_graph.add_draw_list_usage(index_array->draw_tracker, RDG::RESOURCE_USAGE_INDEX_BUFFER_READ);
+		draw_graph.add_draw_list_usage(index_array->draw_tracker, RDG::ResourceUsage::RESOURCE_USAGE_INDEX_BUFFER_READ);
 	}
 }
 
@@ -4659,7 +4659,7 @@ void RenderingDevice::compute_list_dispatch_indirect(ComputeListID p_list, RID p
 	cl->state.dispatch_count++;
 
 	if (buffer->draw_tracker != nullptr) {
-		draw_graph.add_compute_list_usage(buffer->draw_tracker, RDG::RESOURCE_USAGE_INDIRECT_BUFFER_READ);
+		draw_graph.add_compute_list_usage(buffer->draw_tracker, RDG::ResourceUsage::RESOURCE_USAGE_INDIRECT_BUFFER_READ);
 	}
 }
 
@@ -4706,6 +4706,54 @@ void RenderingDevice::full_barrier() {
 	WARN_PRINT("Deprecated. Barriers are automatically inserted by RenderingDevice.");
 }
 #endif
+
+/***********************/
+/**** COMPUTE LISTS ****/
+/***********************/
+
+RenderingDevice::ComputeListID RenderingDevice::custom_list_begin() {
+	_THREAD_SAFE_METHOD_
+
+	ERR_FAIL_COND_V_MSG(custom_list != nullptr, INVALID_ID, "Only one custom list can be active at the same time.");
+
+	// Lock while compute_list is active.
+	_THREAD_SAFE_LOCK_
+
+	custom_list = memnew(CustomList);
+
+	draw_graph.add_custom_list_begin();
+
+	return ID_TYPE_CUSTOM_LIST;
+}
+
+void RenderingDevice::custom_list_require_texture(CustomListID p_list, RID p_texture, RenderingDeviceCommons::ResourceUsage p_usage) {
+	// Must be called within a custom list, the class mutex is locked during that time
+	ERR_FAIL_COND(p_list != ID_TYPE_CUSTOM_LIST);
+	ERR_FAIL_NULL(custom_list);
+
+	Texture *texture = texture_owner.get_or_null(p_texture);
+	draw_graph.add_custom_list_usage(texture->draw_tracker, p_usage);
+}
+
+void RenderingDevice::custom_list_callback(CustomListID p_list, RDD::CustomRenderGraphCallback p_callback, void *p_custom) {
+	// Must be called within a custom list, the class mutex is locked during that time
+	ERR_FAIL_COND(p_list != ID_TYPE_CUSTOM_LIST);
+	ERR_FAIL_NULL(custom_list);
+
+	draw_graph.add_custom_list_callback(p_callback, p_custom);
+}
+
+void RenderingDevice::custom_list_end() {
+	ERR_FAIL_NULL(custom_list);
+
+	draw_graph.add_custom_list_end();
+
+	memdelete(custom_list);
+	custom_list = nullptr;
+
+	// Compute_list is no longer active.
+	_THREAD_SAFE_UNLOCK_
+}
 
 /***********************/
 /**** COMMAND GRAPH ****/
@@ -4768,7 +4816,7 @@ bool RenderingDevice::_texture_make_mutable(Texture *p_texture, RID p_texture_id
 			if (p_texture_id.is_valid()) {
 				if (p_texture->has_initial_data) {
 					// If the texture was initialized with initial data but wasn't made mutable from the start, assume the texture sampling usage.
-					p_texture->draw_tracker->usage = RDG::RESOURCE_USAGE_TEXTURE_SAMPLE;
+					p_texture->draw_tracker->usage = RDG::ResourceUsage::RESOURCE_USAGE_TEXTURE_SAMPLE;
 				}
 
 				_dependencies_make_mutable(p_texture_id, p_texture->draw_tracker);
@@ -5669,7 +5717,9 @@ uint64_t RenderingDevice::get_driver_resource(DriverResource p_resource, RID p_r
 			break;
 		case DRIVER_RESOURCE_TEXTURE:
 		case DRIVER_RESOURCE_TEXTURE_VIEW:
-		case DRIVER_RESOURCE_TEXTURE_DATA_FORMAT: {
+		case DRIVER_RESOURCE_TEXTURE_DATA_FORMAT:
+		case DRIVER_RESOURCE_TEXTURE_DEVICE_MEMORY:
+		case DRIVER_RESOURCE_TEXTURE_USAGE_FLAGS: {
 			Texture *tex = texture_owner.get_or_null(p_rid);
 			ERR_FAIL_NULL_V(tex, 0);
 
@@ -6109,6 +6159,8 @@ void RenderingDevice::_bind_methods() {
 	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_TEXTURE);
 	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_TEXTURE_VIEW);
 	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_TEXTURE_DATA_FORMAT);
+	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_TEXTURE_DEVICE_MEMORY);
+	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_TEXTURE_USAGE_FLAGS);
 	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_SAMPLER);
 	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_UNIFORM_SET);
 	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_BUFFER);
@@ -6118,6 +6170,7 @@ void RenderingDevice::_bind_methods() {
 	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_VULKAN_DEVICE);
 	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_VULKAN_PHYSICAL_DEVICE);
 	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_VULKAN_INSTANCE);
+
 	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_VULKAN_QUEUE);
 	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_VULKAN_QUEUE_FAMILY_INDEX);
 	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_VULKAN_IMAGE);

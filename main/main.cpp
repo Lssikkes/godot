@@ -131,6 +131,10 @@
 #endif // TOOLS_ENABLED && !GDSCRIPT_NO_LSP
 #endif // MODULE_GDSCRIPT_ENABLED
 
+#if defined(STREAMLINE_ENABLED)
+#include "drivers/streamline/streamline.h"
+#endif
+
 /* Static members */
 
 // Singletons
@@ -168,6 +172,7 @@ static PhysicsServer3DManager *physics_server_3d_manager = nullptr;
 static PhysicsServer3D *physics_server_3d = nullptr;
 static XRServer *xr_server = nullptr;
 #endif // _3D_DISABLED
+static Streamline *streamline = nullptr;
 // We error out if setup2() doesn't turn this true
 static bool _start_success = false;
 
@@ -942,6 +947,10 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	GLOBAL_DEF_RST("application/run/flush_stdout_on_print.debug", true);
 
 	MAIN_PRINT("Main: Parse CMDLine");
+
+	/* create streamline and register singleton */
+	streamline = memnew(Streamline);
+	Streamline::register_singleton();
 
 	/* argument parsing and main creation */
 	List<String> args;
@@ -2336,6 +2345,12 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	// always convert to lower case for consistency in the code
 	rendering_driver = rendering_driver.to_lower();
 
+	// start streamline now that we know the API.
+	if (rendering_driver == "vulkan")
+		Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_INITIALIZE_VULKAN);
+	else if (rendering_driver == "d3d12")
+		Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_INITIALIZE_D3D12);
+
 	if (use_custom_res) {
 		if (!force_res) {
 			window_size.width = GLOBAL_GET("display/window/size/viewport_width");
@@ -2609,6 +2624,10 @@ error:
 
 	if (show_help) {
 		print_help(execpath);
+	}
+
+	if (streamline) {
+		memdelete(streamline);
 	}
 
 	EngineDebugger::deinitialize();
@@ -4214,6 +4233,9 @@ static uint64_t navigation_process_max = 0;
 // will terminate the program. In case of failure, the OS exit code needs
 // to be set explicitly here (defaults to EXIT_SUCCESS).
 bool Main::iteration() {
+	if (Streamline::get_singleton())
+		Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_BEGIN_SIMULATION);
+
 	iterating++;
 
 	const uint64_t ticks = OS::get_singleton()->get_ticks_usec();
@@ -4331,6 +4353,9 @@ bool Main::iteration() {
 	}
 	message_queue->flush();
 
+	if (Streamline::get_singleton())
+		Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_END_SIMULATION);
+
 	RenderingServer::get_singleton()->sync(); //sync if still drawing from previous frames.
 
 	if ((DisplayServer::get_singleton()->can_any_window_draw() || DisplayServer::get_singleton()->has_additional_outputs()) &&
@@ -4440,6 +4465,9 @@ bool Main::iteration() {
 		EditorNode::get_singleton()->unload_editor_addons();
 	}
 #endif
+
+	if (Streamline::get_singleton())
+		Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_BEFORE_MESSAGE_LOOP);
 
 	return exit;
 }
@@ -4556,6 +4584,9 @@ void Main::cleanup(bool p_force) {
 
 	finalize_display();
 
+	if (streamline) {
+		memdelete(streamline);
+	}
 	if (input) {
 		memdelete(input);
 	}
