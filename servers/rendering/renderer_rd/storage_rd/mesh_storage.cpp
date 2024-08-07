@@ -1395,7 +1395,7 @@ void MeshStorage::multimesh_free(RID p_rid) {
 	multimesh_owner.free(p_rid);
 }
 
-void MeshStorage::multimesh_allocate_data(RID p_multimesh, int p_instances, RS::MultimeshTransformFormat p_transform_format, bool p_use_colors, bool p_use_custom_data) {
+void MeshStorage::multimesh_allocate_data(RID p_multimesh, int p_instances, RS::MultimeshTransformFormat p_transform_format, bool p_use_colors, bool p_use_custom_data, bool p_use_motion_vectors) {
 	MultiMesh *multimesh = multimesh_owner.get_or_null(p_multimesh);
 	ERR_FAIL_NULL(multimesh);
 
@@ -1428,6 +1428,7 @@ void MeshStorage::multimesh_allocate_data(RID p_multimesh, int p_instances, RS::
 	multimesh->color_offset_cache = p_transform_format == RS::MULTIMESH_TRANSFORM_2D ? 8 : 12;
 	multimesh->uses_custom_data = p_use_custom_data;
 	multimesh->custom_data_offset_cache = multimesh->color_offset_cache + (p_use_colors ? 4 : 0);
+	multimesh->uses_motion_vectors = p_use_motion_vectors;
 	multimesh->stride_cache = multimesh->custom_data_offset_cache + (p_use_custom_data ? 4 : 0);
 	multimesh->buffer_set = false;
 
@@ -1452,6 +1453,10 @@ void MeshStorage::multimesh_allocate_data(RID p_multimesh, int p_instances, RS::
 }
 
 void MeshStorage::_multimesh_enable_motion_vectors(MultiMesh *multimesh) {
+	if (multimesh->uses_motion_vectors == false) {
+		return; // No motion vectors allowed by user, don't enable mvecs.
+	}
+
 	if (multimesh->motion_vectors_enabled) {
 		return;
 	}

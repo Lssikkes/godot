@@ -49,6 +49,7 @@ private:
 	RID multimesh;
 	TransformFormat transform_format = TRANSFORM_2D;
 	AABB custom_aabb;
+	bool use_motion_vectors = true;
 	bool use_colors = false;
 	bool use_custom_data = false;
 	int instance_count = 0;
@@ -77,6 +78,9 @@ protected:
 public:
 	void set_mesh(const Ref<Mesh> &p_mesh);
 	Ref<Mesh> get_mesh() const;
+
+	void set_use_motion_vectors(bool p_enable);
+	bool is_using_motion_vectors() const;
 
 	void set_use_colors(bool p_enable);
 	bool is_using_colors() const;

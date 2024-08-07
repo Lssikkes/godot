@@ -321,7 +321,7 @@ public:
 
 	FUNCRIDSPLIT(multimesh)
 
-	FUNC5(multimesh_allocate_data, RID, int, MultimeshTransformFormat, bool, bool)
+	FUNC6(multimesh_allocate_data, RID, int, MultimeshTransformFormat, bool, bool, bool)
 	FUNC1RC(int, multimesh_get_instance_count, RID)
 
 	FUNC2(multimesh_set_mesh, RID, RID)

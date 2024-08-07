@@ -46,11 +46,17 @@ void RenderingServer::_canvas_item_add_circle_bind_compat_84523(RID p_item, cons
 	canvas_item_add_circle(p_item, p_pos, p_radius, p_color, false);
 }
 
+void RenderingServer::_multimesh_allocate_data_compat_001(RID p_multimesh, int p_instances, RS::MultimeshTransformFormat p_transform_format, bool p_use_colors, bool p_use_custom_data) {
+	multimesh_allocate_data(p_multimesh, p_instances, p_transform_format, p_use_colors, p_use_custom_data);
+}
+
 void RenderingServer::_bind_compatibility_methods() {
 	ClassDB::bind_compatibility_method(D_METHOD("environment_set_fog", "env", "enable", "light_color", "light_energy", "sun_scatter", "density", "height", "height_density", "aerial_perspective", "sky_affect"), &RenderingServer::_environment_set_fog_bind_compat_84792);
 	ClassDB::bind_compatibility_method(D_METHOD("canvas_item_add_multiline", "item", "points", "colors", "width"), &RenderingServer::_canvas_item_add_multiline_bind_compat_84523, DEFVAL(-1.0));
 	ClassDB::bind_compatibility_method(D_METHOD("canvas_item_add_rect", "item", "rect", "color"), &RenderingServer::_canvas_item_add_rect_bind_compat_84523);
 	ClassDB::bind_compatibility_method(D_METHOD("canvas_item_add_circle", "item", "pos", "radius", "color"), &RenderingServer::_canvas_item_add_circle_bind_compat_84523);
+	ClassDB::bind_compatibility_method(D_METHOD("canvas_item_add_circle", "item", "pos", "radius", "color"), &RenderingServer::_canvas_item_add_circle_bind_compat_84523);
+	ClassDB::bind_compatibility_method(D_METHOD("multimesh_allocate_data", "multimesh", "instances", "transform_format", "color_format", "custom_data_format"), &RenderingServer::_multimesh_allocate_data_compat_001, DEFVAL(false), DEFVAL(false));
 }
 
 #endif

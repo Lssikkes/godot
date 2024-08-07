@@ -187,6 +187,7 @@ struct MultiMesh {
 	RS::MultimeshTransformFormat xform_format = RS::MULTIMESH_TRANSFORM_3D;
 	bool uses_colors = false;
 	bool uses_custom_data = false;
+	bool uses_motion_vectors = true;
 	int visible_instances = -1;
 	AABB aabb;
 	AABB custom_aabb;
@@ -496,7 +497,7 @@ public:
 	virtual RID multimesh_allocate() override;
 	virtual void multimesh_initialize(RID p_rid) override;
 	virtual void multimesh_free(RID p_rid) override;
-	virtual void multimesh_allocate_data(RID p_multimesh, int p_instances, RS::MultimeshTransformFormat p_transform_format, bool p_use_colors = false, bool p_use_custom_data = false) override;
+	virtual void multimesh_allocate_data(RID p_multimesh, int p_instances, RS::MultimeshTransformFormat p_transform_format, bool p_use_colors = false, bool p_use_custom_data = false, bool p_use_motion_vectors = true) override;
 	virtual int multimesh_get_instance_count(RID p_multimesh) const override;
 
 	virtual void multimesh_set_mesh(RID p_multimesh, RID p_mesh) override;
@@ -535,6 +536,11 @@ public:
 	_FORCE_INLINE_ bool multimesh_uses_custom_data(RID p_multimesh) const {
 		MultiMesh *multimesh = multimesh_owner.get_or_null(p_multimesh);
 		return multimesh->uses_custom_data;
+	}
+
+	_FORCE_INLINE_ bool multimesh_uses_motion_vectors(RID p_multimesh) const {
+		MultiMesh *multimesh = multimesh_owner.get_or_null(p_multimesh);
+		return multimesh->uses_motion_vectors;
 	}
 
 	_FORCE_INLINE_ uint32_t multimesh_get_instances_to_draw(RID p_multimesh) const {

@@ -2455,6 +2455,7 @@
 			<param index="2" name="transform_format" type="int" enum="RenderingServer.MultimeshTransformFormat" />
 			<param index="3" name="color_format" type="bool" default="false" />
 			<param index="4" name="custom_data_format" type="bool" default="false" />
+			<param index="5" name="motion_mesh_format" type="bool" default="true" />
 			<description>
 			</description>
 		</method>

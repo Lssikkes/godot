@@ -1448,7 +1448,7 @@ void MeshStorage::multimesh_free(RID p_rid) {
 	multimesh_owner.free(p_rid);
 }
 
-void MeshStorage::multimesh_allocate_data(RID p_multimesh, int p_instances, RS::MultimeshTransformFormat p_transform_format, bool p_use_colors, bool p_use_custom_data) {
+void MeshStorage::multimesh_allocate_data(RID p_multimesh, int p_instances, RS::MultimeshTransformFormat p_transform_format, bool p_use_colors, bool p_use_custom_data, bool p_use_motion_vectors) {
 	MultiMesh *multimesh = multimesh_owner.get_or_null(p_multimesh);
 	ERR_FAIL_NULL(multimesh);
 
@@ -1476,6 +1476,7 @@ void MeshStorage::multimesh_allocate_data(RID p_multimesh, int p_instances, RS::
 	multimesh->uses_colors = p_use_colors;
 	multimesh->color_offset_cache = p_transform_format == RS::MULTIMESH_TRANSFORM_2D ? 8 : 12;
 	multimesh->uses_custom_data = p_use_custom_data;
+	multimesh->uses_motion_vectors = p_use_motion_vectors;
 	multimesh->custom_data_offset_cache = multimesh->color_offset_cache + color_and_custom_strides;
 	multimesh->stride_cache = multimesh->custom_data_offset_cache + color_and_custom_strides;
 	multimesh->buffer_set = false;

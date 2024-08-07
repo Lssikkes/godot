@@ -75,6 +75,12 @@ class RenderingServer : public Object {
 
 	virtual TypedArray<StringName> _global_shader_parameter_get_list() const;
 
+public:
+	enum MultimeshTransformFormat {
+		MULTIMESH_TRANSFORM_2D,
+		MULTIMESH_TRANSFORM_3D,
+	};
+
 protected:
 	RID _make_test_cube();
 	void _free_internal_rids();
@@ -92,6 +98,7 @@ protected:
 	void _canvas_item_add_multiline_bind_compat_84523(RID p_item, const Vector<Point2> &p_points, const Vector<Color> &p_colors, float p_width = -1.0);
 	void _canvas_item_add_rect_bind_compat_84523(RID p_item, const Rect2 &p_rect, const Color &p_color);
 	void _canvas_item_add_circle_bind_compat_84523(RID p_item, const Point2 &p_pos, float p_radius, const Color &p_color);
+	void _multimesh_allocate_data_compat_001(RID p_multimesh, int p_instances, MultimeshTransformFormat p_transform_format, bool p_use_colors = false, bool p_use_custom_data = false);
 
 	static void _bind_compatibility_methods();
 #endif
@@ -420,13 +427,7 @@ public:
 	/* MULTIMESH API */
 
 	virtual RID multimesh_create() = 0;
-
-	enum MultimeshTransformFormat {
-		MULTIMESH_TRANSFORM_2D,
-		MULTIMESH_TRANSFORM_3D,
-	};
-
-	virtual void multimesh_allocate_data(RID p_multimesh, int p_instances, MultimeshTransformFormat p_transform_format, bool p_use_colors = false, bool p_use_custom_data = false) = 0;
+	virtual void multimesh_allocate_data(RID p_multimesh, int p_instances, MultimeshTransformFormat p_transform_format, bool p_use_colors = false, bool p_use_custom_data = false, bool p_use_motion_vectors = true) = 0;
 	virtual int multimesh_get_instance_count(RID p_multimesh) const = 0;
 
 	virtual void multimesh_set_mesh(RID p_multimesh, RID p_mesh) = 0;
@@ -1755,7 +1756,6 @@ public:
 #ifndef DISABLE_DEPRECATED
 	void fix_surface_compatibility(SurfaceData &p_surface, const String &p_path = "");
 #endif
-
 private:
 	// Binder helpers
 	RID _texture_2d_layered_create(const TypedArray<Image> &p_layers, TextureLayeredType p_layered_type);
