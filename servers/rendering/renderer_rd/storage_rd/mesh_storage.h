@@ -226,6 +226,7 @@ private:
 		bool motion_vectors_enabled = false;
 		uint32_t motion_vectors_current_offset = 0;
 		uint32_t motion_vectors_previous_offset = 0;
+		uint64_t motion_vectors_instancedata_frame = -1;
 		uint64_t motion_vectors_last_change = -1;
 		uint32_t stride_cache = 0;
 		uint32_t color_offset_cache = 0;

@@ -1439,12 +1439,11 @@ void MeshStorage::multimesh_allocate_data(RID p_multimesh, int p_instances, RS::
 	multimesh->motion_vectors_current_offset = 0;
 	multimesh->motion_vectors_previous_offset = 0;
 	multimesh->motion_vectors_last_change = -1;
+	multimesh->motion_vectors_instancedata_frame = RSG::rasterizer->get_frame_number();
+	multimesh->motion_vectors_enabled = false;
 
 	if (multimesh->instances) {
 		uint32_t buffer_size = multimesh->instances * multimesh->stride_cache * sizeof(float);
-		if (multimesh->motion_vectors_enabled) {
-			buffer_size *= 2;
-		}
 		multimesh->buffer = RD::get_singleton()->storage_buffer_create(buffer_size);
 	}
 
@@ -1456,6 +1455,9 @@ void MeshStorage::_multimesh_enable_motion_vectors(MultiMesh *multimesh) {
 		return;
 	}
 
+	if (multimesh->motion_vectors_instancedata_frame == -1ULL || (RSG::rasterizer->get_frame_number() - multimesh->motion_vectors_instancedata_frame < 2ULL)) { // multimesh was created this frame, no motion vectors needed.
+		return;
+	}
 	multimesh->motion_vectors_enabled = true;
 
 	multimesh->motion_vectors_current_offset = 0;
