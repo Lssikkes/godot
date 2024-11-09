@@ -2140,6 +2140,8 @@
 			Sent when the window title bar decoration is changed (e.g. [constant WINDOW_FLAG_EXTEND_TO_TITLE] is set or window entered/exited full screen mode).
 			[b]Note:[/b] This flag is implemented only on macOS.
 		</constant>
+		<constant name="WINDOW_EVENT_PCL_PING" value="8" enum="WindowEvent">
+		</constant>
 		<constant name="VSYNC_DISABLED" value="0" enum="VSyncMode">
 			No vertical synchronization, which means the engine will display frames as fast as possible (tearing may be visible). Framerate is unlimited (regardless of [member Engine.max_fps]).
 		</constant>
