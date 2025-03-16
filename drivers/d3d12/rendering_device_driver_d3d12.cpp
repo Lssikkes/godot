@@ -39,9 +39,12 @@
 #include "dxil_hash.h"
 #include "rendering_context_driver_d3d12.h"
 
+#include "drivers/streamline/streamline.h"
+
 #include <nir_spirv.h>
 #include <nir_to_dxil.h>
 #include <spirv_to_dxil.h>
+
 extern "C" {
 #include <dxil_spirv_nir.h>
 }
@@ -2247,6 +2250,8 @@ Error RenderingDeviceDriverD3D12::command_queue_execute_and_present(CommandQueue
 		}
 	}
 
+	Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_BEGIN_PRESENT);
+
 	HRESULT res;
 	bool any_present_failed = false;
 	for (uint32_t i = 0; i < p_swap_chains.size(); i++) {
@@ -2257,6 +2262,8 @@ Error RenderingDeviceDriverD3D12::command_queue_execute_and_present(CommandQueue
 			any_present_failed = true;
 		}
 	}
+
+	Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_END_PRESENT);
 
 	return any_present_failed ? FAILED : OK;
 }
@@ -2444,6 +2451,12 @@ Error RenderingDeviceDriverD3D12::swap_chain_resize(CommandQueueID p_cmd_queue, 
 		return ERR_SKIP;
 	}
 
+#ifdef STREAMLINE_ENABLED
+	if(Streamline::get_singleton()) {
+		Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_MODIFY_SWAPCHAIN);
+	}
+#endif
+
 	HRESULT res;
 	const bool is_tearing_supported = context_driver->get_tearing_supported();
 	UINT sync_interval = 0;
@@ -2487,6 +2500,7 @@ Error RenderingDeviceDriverD3D12::swap_chain_resize(CommandQueueID p_cmd_queue, 
 		swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		swap_chain_desc.SampleDesc.Count = 1;
 		swap_chain_desc.Flags = creation_flags;
+
 		swap_chain_desc.Scaling = DXGI_SCALING_STRETCH;
 		if (OS::get_singleton()->is_layered_allowed()) {
 			swap_chain_desc.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
@@ -2499,8 +2513,18 @@ Error RenderingDeviceDriverD3D12::swap_chain_resize(CommandQueueID p_cmd_queue, 
 		swap_chain_desc.Height = surface->height;
 
 		ComPtr<IDXGISwapChain1> swap_chain_1;
+#if 1
 		res = context_driver->dxgi_factory_get()->CreateSwapChainForComposition(command_queue->d3d_queue.Get(), &swap_chain_desc, nullptr, swap_chain_1.GetAddressOf());
+#else
+		res = context_driver->dxgi_factory_get()->CreateSwapChainForHwnd(command_queue->d3d_queue.Get(), surface->hwnd, &swap_chain_desc, nullptr, nullptr, swap_chain_1.GetAddressOf());
+		if (!SUCCEEDED(res) && swap_chain_desc.AlphaMode != DXGI_ALPHA_MODE_IGNORE) {
+			swap_chain_desc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+			has_comp_alpha[(uint64_t)p_cmd_queue.id] = false;
+			res = context_driver->dxgi_factory_get()->CreateSwapChainForHwnd(command_queue->d3d_queue.Get(), surface->hwnd, &swap_chain_desc, nullptr, nullptr, swap_chain_1.GetAddressOf());
+		}
+#endif
 		ERR_FAIL_COND_V(!SUCCEEDED(res), ERR_CANT_CREATE);
+
 
 		swap_chain_1.As(&swap_chain->d3d_swap_chain);
 		ERR_FAIL_NULL_V(swap_chain->d3d_swap_chain, ERR_CANT_CREATE);
@@ -2509,6 +2533,7 @@ Error RenderingDeviceDriverD3D12::swap_chain_resize(CommandQueueID p_cmd_queue, 
 		ERR_FAIL_COND_V(!SUCCEEDED(res), ERR_CANT_CREATE);
 	}
 
+#if 1
 	if (surface->composition_device.Get() == nullptr) {
 		using PFN_DCompositionCreateDevice = HRESULT(WINAPI *)(IDXGIDevice *, REFIID, void **);
 		PFN_DCompositionCreateDevice pfn_DCompositionCreateDevice = (PFN_DCompositionCreateDevice)(void *)GetProcAddress(context_driver->lib_dcomp, "DCompositionCreateDevice");
@@ -2538,6 +2563,7 @@ Error RenderingDeviceDriverD3D12::swap_chain_resize(CommandQueueID p_cmd_queue, 
 		res = surface->composition_device->Commit();
 		ERR_FAIL_COND_V(!SUCCEEDED(res), ERR_CANT_CREATE);
 	}
+#endif
 
 	res = swap_chain->d3d_swap_chain->GetDesc1(&swap_chain_desc);
 	ERR_FAIL_COND_V(!SUCCEEDED(res), ERR_CANT_CREATE);
@@ -6246,6 +6272,8 @@ uint64_t RenderingDeviceDriverD3D12::api_trait_get(ApiTrait p_trait) {
 			return true;
 		case API_TRAIT_BUFFERS_REQUIRE_TRANSITIONS:
 			return !barrier_capabilities.enhanced_barriers_supported;
+		case API_TRAIT_COMMAND_LIST_OFFSET:
+			return (uint64_t)offsetof(CommandBufferInfo, cmd_list);
 		default:
 			return RenderingDeviceDriver::api_trait_get(p_trait);
 	}
@@ -6308,6 +6336,10 @@ RenderingDeviceDriverD3D12::RenderingDeviceDriverD3D12(RenderingContextDriverD3D
 }
 
 RenderingDeviceDriverD3D12::~RenderingDeviceDriverD3D12() {
+	if (Streamline::get_singleton()) {
+		Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_BEFORE_DEVICE_DESTROY);
+	}
+
 	glsl_type_singleton_decref();
 }
 
@@ -6348,6 +6380,10 @@ Error RenderingDeviceDriverD3D12::_initialize_device() {
 	} else {
 		PFN_D3D12_CREATE_DEVICE d3d_D3D12CreateDevice = (PFN_D3D12_CREATE_DEVICE)(void *)GetProcAddress(context_driver->lib_d3d12, "D3D12CreateDevice");
 		ERR_FAIL_NULL_V(d3d_D3D12CreateDevice, ERR_CANT_CREATE);
+
+		if (Streamline::get_singleton()->get_internal_parameter(STREAMLINE_INTERNAL_PARAMETER_FUNC_D3D12CreateDevice)) {
+			d3d_D3D12CreateDevice = (PFN_D3D12_CREATE_DEVICE)Streamline::get_singleton()->get_internal_parameter(STREAMLINE_INTERNAL_PARAMETER_FUNC_D3D12CreateDevice);
+		}
 
 		res = d3d_D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(device.GetAddressOf()));
 	}
@@ -6701,12 +6737,16 @@ Error RenderingDeviceDriverD3D12::initialize(uint32_t p_device_index, uint32_t p
 	HRESULT res = adapter->GetDesc(&adapter_desc);
 	ERR_FAIL_COND_V(!SUCCEEDED(res), ERR_CANT_CREATE);
 
+	Streamline::get_singleton()->set_internal_parameter("d3d12_adapter_luid", (void *)&adapter_desc.AdapterLuid);
+
 	// Set the pipeline cache ID based on the adapter information.
 	pipeline_cache_id = String::hex_encode_buffer((uint8_t *)&adapter_desc.AdapterLuid, sizeof(LUID));
 	pipeline_cache_id += "-driver-" + itos(adapter_desc.Revision);
 
 	Error err = _initialize_device();
 	ERR_FAIL_COND_V(err != OK, ERR_CANT_CREATE);
+
+	Streamline::get_singleton()->set_internal_parameter("d3d12_device", (void *)device.Get());
 
 	err = _check_capabilities();
 	ERR_FAIL_COND_V(err != OK, ERR_CANT_CREATE);
@@ -6724,6 +6764,8 @@ Error RenderingDeviceDriverD3D12::initialize(uint32_t p_device_index, uint32_t p
 	ERR_FAIL_COND_V(err != OK, ERR_CANT_CREATE);
 
 	glsl_type_singleton_init_or_ref();
+
+	Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_AFTER_DEVICE_CREATION);
 
 	return OK;
 }

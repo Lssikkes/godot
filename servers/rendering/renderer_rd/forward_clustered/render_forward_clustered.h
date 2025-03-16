@@ -32,6 +32,7 @@
 
 #include "core/templates/paged_allocator.h"
 #include "servers/rendering/renderer_rd/cluster_builder_rd.h"
+#include "servers/rendering/renderer_rd/effects/dlss.h"
 #include "servers/rendering/renderer_rd/effects/fsr2.h"
 #ifdef METAL_ENABLED
 #include "servers/rendering/renderer_rd/effects/metal_fx.h"
@@ -94,6 +95,7 @@ public:
 	private:
 		RenderSceneBuffersRD *render_buffers = nullptr;
 		RendererRD::FSR2Context *fsr2_context = nullptr;
+		RendererRD::DLSSContext *dlss_context = nullptr;
 #ifdef METAL_ENABLED
 		RendererRD::MFXTemporalContext *mfx_temporal_context = nullptr;
 #endif
@@ -137,8 +139,11 @@ public:
 		RID get_voxelgi(uint32_t p_layer) { return render_buffers->get_texture_slice(RB_SCOPE_FORWARD_CLUSTERED, RB_TEX_VOXEL_GI, p_layer, 0); }
 		RID get_voxelgi_msaa(uint32_t p_layer) { return render_buffers->get_texture_slice(RB_SCOPE_FORWARD_CLUSTERED, RB_TEX_VOXEL_GI_MSAA, p_layer, 0); }
 
-		void ensure_fsr2(RendererRD::FSR2Effect *p_effect);
+		void ensure_fsr2(RendererRD::FSR2Effect *effect);
 		RendererRD::FSR2Context *get_fsr2_context() const { return fsr2_context; }
+
+		void ensure_dlss(RendererRD::DLSSEffect *effect);
+		RendererRD::DLSSContext *get_dlss_context() const { return dlss_context; }
 
 #ifdef METAL_ENABLED
 		bool ensure_mfx_temporal(RendererRD::MFXTemporalEffect *p_effect);
@@ -696,6 +701,7 @@ private:
 	RendererRD::Resolve *resolve_effects = nullptr;
 	RendererRD::TAA *taa = nullptr;
 	RendererRD::FSR2Effect *fsr2_effect = nullptr;
+	RendererRD::DLSSEffect *dlss_effect = nullptr;
 	RendererRD::SSEffects *ss_effects = nullptr;
 
 #ifdef METAL_ENABLED
