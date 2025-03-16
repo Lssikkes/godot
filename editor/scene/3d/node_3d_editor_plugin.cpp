@@ -37,6 +37,7 @@
 #include "core/math/projection.h"
 #include "core/os/keyboard.h"
 #include "core/string/translation_server.h"
+#include "drivers/streamline/streamline.h"
 #include "editor/animation/animation_player_editor_plugin.h"
 #include "editor/debugger/editor_debugger_node.h"
 #include "editor/docks/scene_tree_dock.h"
@@ -3183,6 +3184,9 @@ void Node3DEditorViewport::_project_settings_changed() {
 
 	const Viewport::AnisotropicFiltering anisotropic_filtering_level = Viewport::AnisotropicFiltering(int(GLOBAL_GET("rendering/textures/default_filters/anisotropic_filtering_level")));
 	viewport->set_anisotropic_filtering_level(anisotropic_filtering_level);
+
+	if(Streamline::get_singleton())
+		Streamline::get_singleton()->update_project_settings();
 }
 
 static void override_label_colors(Control *p_control) {

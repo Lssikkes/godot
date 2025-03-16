@@ -33,6 +33,8 @@
 #include "core/config/project_settings.h"
 #include "core/io/dir_access.h"
 
+#include "drivers/streamline/streamline.h"
+
 #include "servers/rendering/renderer_rd/forward_clustered/render_forward_clustered.h"
 #include "servers/rendering/renderer_rd/forward_mobile/render_forward_mobile.h"
 
@@ -115,9 +117,12 @@ void RendererCompositorRD::begin_frame(double frame_step) {
 
 	canvas->set_time(time);
 	scene->set_time(time, frame_step);
+
+	Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_BEGIN_RENDER);
 }
 
 void RendererCompositorRD::end_frame(bool p_present) {
+	Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_END_RENDER);
 	RD::get_singleton()->swap_buffers(p_present);
 }
 
