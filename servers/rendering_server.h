@@ -926,6 +926,7 @@ public:
 		VIEWPORT_SCALING_3D_MODE_BILINEAR,
 		VIEWPORT_SCALING_3D_MODE_FSR,
 		VIEWPORT_SCALING_3D_MODE_FSR2,
+		VIEWPORT_SCALING_3D_MODE_DLSS,
 		VIEWPORT_SCALING_3D_MODE_METALFX_SPATIAL,
 		VIEWPORT_SCALING_3D_MODE_METALFX_TEMPORAL,
 		VIEWPORT_SCALING_3D_MODE_MAX,
@@ -951,7 +952,7 @@ public:
 	_ALWAYS_INLINE_ static ViewportScaling3DType scaling_3d_mode_type(ViewportScaling3DMode p_mode) {
 		if (p_mode == VIEWPORT_SCALING_3D_MODE_BILINEAR || p_mode == VIEWPORT_SCALING_3D_MODE_FSR || p_mode == VIEWPORT_SCALING_3D_MODE_METALFX_SPATIAL) {
 			return VIEWPORT_SCALING_3D_TYPE_SPATIAL;
-		} else if (p_mode == VIEWPORT_SCALING_3D_MODE_FSR2 || p_mode == VIEWPORT_SCALING_3D_MODE_METALFX_TEMPORAL) {
+		} else if (p_mode == VIEWPORT_SCALING_3D_MODE_FSR2 || p_mode == VIEWPORT_SCALING_3D_MODE_METALFX_TEMPORAL || p_mode == VIEWPORT_SCALING_3D_MODE_DLSS) {
 			return VIEWPORT_SCALING_3D_TYPE_TEMPORAL;
 		}
 		return VIEWPORT_SCALING_3D_TYPE_NONE;
@@ -968,6 +969,7 @@ public:
 
 	virtual void viewport_set_scaling_3d_mode(RID p_viewport, ViewportScaling3DMode p_scaling_3d_mode) = 0;
 	virtual void viewport_set_scaling_3d_scale(RID p_viewport, float p_scaling_3d_scale) = 0;
+	virtual void viewport_set_frame_generation(RID p_viewport, bool p_frame_generation) = 0;
 	virtual void viewport_set_fsr_sharpness(RID p_viewport, float p_fsr_sharpness) = 0;
 	virtual void viewport_set_texture_mipmap_bias(RID p_viewport, float p_texture_mipmap_bias) = 0;
 	virtual void viewport_set_anisotropic_filtering_level(RID p_viewport, ViewportAnisotropicFiltering p_anisotropic_filtering_level) = 0;

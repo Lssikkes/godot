@@ -35,6 +35,10 @@
 #include "thirdparty/misc/smolv.h"
 #include "vulkan_hooks.h"
 
+#if defined(STREAMLINE_ENABLED)
+#include "drivers/streamline/streamline.h"
+#endif
+
 #if defined(ANDROID_ENABLED)
 #include "platform/android/java_godot_wrapper.h"
 #include "platform/android/os_android.h"
@@ -1033,6 +1037,14 @@ Error RenderingDeviceDriverVulkan::_add_queue_create_info(LocalVector<VkDeviceQu
 	const uint32_t max_queue_count_per_family = 1;
 	static const float queue_priorities[max_queue_count_per_family] = {};
 	for (uint32_t i = 0; i < queue_family_count; i++) {
+#ifdef STREAMLINE_ENABLED
+		if (queue_family_properties[i].queueCount == 1 &&
+				(queue_family_properties[i].queueFlags & VK_QUEUE_OPTICAL_FLOW_BIT_NV) != 0 &&
+				(queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0) {
+			// This queue is required by Streamline. Don't allocate it or Streamline 2.4.10 will fail in combination with DLSS-FG.
+			continue;
+		}
+#endif
 		if ((queue_family_properties[i].queueFlags & queue_flags_mask) == 0) {
 			// We ignore creating queues in families that don't support any of the operations we require.
 			continue;
@@ -1528,6 +1540,12 @@ Error RenderingDeviceDriverVulkan::initialize(uint32_t p_device_index, uint32_t 
 	err = _check_device_capabilities();
 	ERR_FAIL_COND_V(err != OK, err);
 
+#ifdef STREAMLINE_ENABLED
+	if (Streamline::get_singleton()) {
+		Streamline::get_singleton()->set_internal_parameter("vulkan_physical_device", (void *)physical_device);
+	}
+#endif
+
 	LocalVector<VkDeviceQueueCreateInfo> queue_create_info;
 	err = _add_queue_create_info(queue_create_info);
 	ERR_FAIL_COND_V(err != OK, err);
@@ -1556,6 +1574,12 @@ Error RenderingDeviceDriverVulkan::initialize(uint32_t p_device_index, uint32_t 
 		// (e.g. OpenXR) thus it's too risky to use Swappy.
 		swappy_frame_pacer_enable = false;
 		OS::get_singleton()->print("VulkanHooks detected (e.g. OpenXR): Force-disabling Swappy Frame Pacing.\n");
+	}
+#endif
+
+#if defined(STREAMLINE_ENABLED)
+	if (Streamline::get_singleton()) {
+		Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_AFTER_DEVICE_CREATION);
 	}
 #endif
 
@@ -2781,6 +2805,12 @@ Error RenderingDeviceDriverVulkan::command_queue_execute_and_present(CommandQueu
 		present_info.pImageIndices = image_indices.ptr();
 		present_info.pResults = results.ptr();
 
+#ifdef STREAMLINE_ENABLED
+		if (Streamline::get_singleton()) {
+			Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_BEGIN_PRESENT);
+		}
+#endif
+
 		device_queue.submit_mutex.lock();
 #if defined(SWAPPY_FRAME_PACING_ENABLED)
 		if (swappy_frame_pacer_enable) {
@@ -2793,6 +2823,10 @@ Error RenderingDeviceDriverVulkan::command_queue_execute_and_present(CommandQueu
 #endif
 
 		device_queue.submit_mutex.unlock();
+
+#ifdef STREAMLINE_ENABLED
+		Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_END_PRESENT);
+#endif
 
 		// Set the index to an invalid value. If any of the swap chains returned out of date, indicate it should be resized the next time it's acquired.
 		bool any_result_is_out_of_date = false;
@@ -3115,6 +3149,11 @@ Error RenderingDeviceDriverVulkan::swap_chain_resize(CommandQueueID p_cmd_queue,
 
 	CommandQueue *command_queue = (CommandQueue *)(p_cmd_queue.id);
 	SwapChain *swap_chain = (SwapChain *)(p_swap_chain.id);
+
+#ifdef STREAMLINE_ENABLED
+	// Emit streamline event
+	Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_MODIFY_SWAPCHAIN);
+#endif
 
 	// Release all current contents of the swap chain.
 	_swap_chain_release(swap_chain);
@@ -6010,6 +6049,14 @@ uint64_t RenderingDeviceDriverVulkan::get_resource_native_handle(DriverResource 
 			const TextureInfo *tex_info = (const TextureInfo *)p_driver_id.id;
 			return (uint64_t)tex_info->vk_view_create_info.format;
 		}
+		case DRIVER_RESOURCE_TEXTURE_DEVICE_MEMORY: {
+			const TextureInfo *tex_info = (const TextureInfo *)p_driver_id.id;
+			return (uint64_t)tex_info->allocation.info.deviceMemory;
+		} break;
+		case DRIVER_RESOURCE_TEXTURE_USAGE_FLAGS: {
+			const TextureInfo *tex_info = (const TextureInfo *)p_driver_id.id;
+			return (uint64_t)tex_info->vk_create_info.usage;
+		} break;
 		case DRIVER_RESOURCE_SAMPLER:
 		case DRIVER_RESOURCE_UNIFORM_SET:
 		case DRIVER_RESOURCE_BUFFER:
@@ -6140,6 +6187,8 @@ uint64_t RenderingDeviceDriverVulkan::api_trait_get(ApiTrait p_trait) {
 			return (uint64_t)MAX((uint64_t)16, physical_device_properties.limits.optimalBufferCopyOffsetAlignment);
 		case API_TRAIT_SHADER_CHANGE_INVALIDATION:
 			return (uint64_t)SHADER_CHANGE_INVALIDATION_INCOMPATIBLE_SETS_PLUS_CASCADE;
+		case API_TRAIT_COMMAND_LIST_OFFSET:
+			return (uint64_t)offsetof(CommandBufferInfo, vk_command_buffer);
 		default:
 			return RenderingDeviceDriver::api_trait_get(p_trait);
 	}
@@ -6204,6 +6253,12 @@ RenderingDeviceDriverVulkan::RenderingDeviceDriverVulkan(RenderingContextDriverV
 }
 
 RenderingDeviceDriverVulkan::~RenderingDeviceDriverVulkan() {
+#if defined(STREAMLINE_ENABLED)
+	if (Streamline::get_singleton()) {
+		Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_BEFORE_DEVICE_DESTROY);
+	}
+#endif
+
 #if defined(DEBUG_ENABLED) || defined(DEV_ENABLED)
 	buffer_free(breadcrumb_buffer);
 #endif
