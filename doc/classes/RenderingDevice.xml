@@ -1174,6 +1174,14 @@
 			The native id of the data format of the texture.
 			- Vulkan: [code]VkFormat[/code].
 		</constant>
+		<constant name="DRIVER_RESOURCE_TEXTURE_DEVICE_MEMORY" value="13" enum="DriverResource">
+			The native handle of the data memory of the texture.
+			- Vulkan: [code]VkDeviceMemory[/code].
+		</constant>
+		<constant name="DRIVER_RESOURCE_TEXTURE_USAGE_FLAGS" value="14" enum="DriverResource">
+			The native image usage flags of the texture.
+			- Vulkan: [code]VkImageUsageFlags[/code].
+		</constant>
 		<constant name="DRIVER_RESOURCE_SAMPLER" value="8" enum="DriverResource">
 			- Vulkan: [code]VkSampler[/code].
 		</constant>

@@ -292,6 +292,12 @@ RenderingDeviceGraph::ComputeListInstruction *RenderingDeviceGraph::_allocate_co
 	return reinterpret_cast<ComputeListInstruction *>(&compute_instruction_list.data[compute_list_data_offset]);
 }
 
+RenderingDeviceGraph::CustomListInstruction *RenderingDeviceGraph::_allocate_custom_list_instruction(uint32_t p_instruction_size) {
+	uint32_t custom_list_data_offset = custom_instruction_list.data.size();
+	custom_instruction_list.data.resize(custom_list_data_offset + p_instruction_size);
+	return reinterpret_cast<CustomListInstruction *>(&custom_instruction_list.data[custom_list_data_offset]);
+}
+
 void RenderingDeviceGraph::_check_discardable_attachment_dependency(ResourceTracker *p_resource_tracker, int32_t p_previous_command_index, int32_t p_command_index) {
 	if (!p_resource_tracker->is_discardable) {
 		return;
@@ -918,6 +924,25 @@ void RenderingDeviceGraph::_run_draw_list_command(RDD::CommandBufferID p_command
 	}
 }
 
+void RenderingDeviceGraph::_run_custom_list_command(RDD::CommandBufferID p_command_buffer, const uint8_t *p_instruction_data, uint32_t p_instruction_data_size) {
+	uint32_t instruction_data_cursor = 0;
+	while (instruction_data_cursor < p_instruction_data_size) {
+		DEV_ASSERT((instruction_data_cursor + sizeof(CustomListInstruction)) <= p_instruction_data_size);
+
+		const CustomListInstruction *instruction = reinterpret_cast<const CustomListInstruction *>(&p_instruction_data[instruction_data_cursor]);
+		switch (instruction->type) {
+			case CustomListInstruction::TYPE_USER_COMMAND: {
+				const CustomListUserCommandInstruction *custom_user_command_instruction = reinterpret_cast<const CustomListUserCommandInstruction *>(instruction);
+				custom_user_command_instruction->callback(custom_user_command_instruction->custom, p_command_buffer);
+				instruction_data_cursor += sizeof(CustomListUserCommandInstruction);
+			} break;
+			default:
+				DEV_ASSERT(false && "Unknown custom list instruction type.");
+				return;
+		}
+	}
+}
+
 void RenderingDeviceGraph::_add_draw_list_begin(FramebufferCache *p_framebuffer_cache, RDD::RenderPassID p_render_pass, RDD::FramebufferID p_framebuffer, Rect2i p_region, VectorView<AttachmentOperation> p_attachment_operations, VectorView<RDD::RenderPassClearValue> p_attachment_clear_values, bool p_uses_color, bool p_uses_depth, uint32_t p_breadcrumb, bool p_split_cmd_buffer) {
 	DEV_ASSERT(p_attachment_operations.size() == p_attachment_clear_values.size());
 
@@ -1065,6 +1090,10 @@ void RenderingDeviceGraph::_run_render_commands(int32_t p_level, const RecordedC
 					_run_draw_list_command(r_command_buffer, draw_list_command->instruction_data(), draw_list_command->instruction_data_size);
 					driver->command_end_render_pass(r_command_buffer);
 				}
+			} break;
+			case RecordedCommand::TYPE_CUSTOM_LIST: {
+				const RecordedCustomListCommand *custom_list_command = reinterpret_cast<const RecordedCustomListCommand *>(command);
+				_run_custom_list_command(r_command_buffer, custom_list_command->instruction_data(), custom_list_command->instruction_data_size);
 			} break;
 			case RecordedCommand::TYPE_TEXTURE_CLEAR: {
 				const RecordedTextureClearCommand *texture_clear_command = reinterpret_cast<const RecordedTextureClearCommand *>(command);
@@ -2049,6 +2078,56 @@ void RenderingDeviceGraph::add_draw_list_end() {
 	_add_command_to_graph(draw_instruction_list.command_trackers.ptr(), draw_instruction_list.command_tracker_usages.ptr(), draw_instruction_list.command_trackers.size(), command_index, command);
 }
 
+void RenderingDeviceGraph::add_custom_list_begin() {
+	custom_instruction_list.clear();
+	custom_instruction_list.index++;
+}
+
+void RenderingDeviceGraph::add_custom_list_callback(RDD::CustomRenderGraphCallback p_callback, void *p_custom) {
+	CustomListUserCommandInstruction *instruction = reinterpret_cast<CustomListUserCommandInstruction *>(_allocate_custom_list_instruction(sizeof(CustomListUserCommandInstruction)));
+	instruction->type = CustomListInstruction::TYPE_USER_COMMAND;
+	instruction->callback = p_callback;
+	instruction->custom = p_custom;
+}
+
+void RenderingDeviceGraph::add_custom_list_usage(ResourceTracker *p_tracker, ResourceUsage p_usage) {
+	DEV_ASSERT(p_tracker != nullptr);
+
+	p_tracker->reset_if_outdated(tracking_frame);
+
+	if (p_tracker->custom_list_index != custom_instruction_list.index) {
+		custom_instruction_list.command_trackers.push_back(p_tracker);
+		custom_instruction_list.command_tracker_usages.push_back(p_usage);
+		p_tracker->custom_list_index = custom_instruction_list.index;
+		p_tracker->custom_list_index = p_usage;
+	}
+#ifdef DEV_ENABLED
+	else if (p_tracker->custom_list_usage != p_usage) {
+		ERR_FAIL_MSG(vformat("Tracker can't have more than one type of usage in the same compute list. Custom list usage is %d and the requested usage is %d.", p_tracker->custom_list_usage, p_usage));
+	}
+#endif
+}
+
+void RenderingDeviceGraph::add_custom_list_usages(VectorView<ResourceTracker *> p_trackers, VectorView<ResourceUsage> p_usages) {
+	DEV_ASSERT(p_trackers.size() == p_usages.size());
+
+	for (uint32_t i = 0; i < p_trackers.size(); i++) {
+		add_custom_list_usage(p_trackers[i], p_usages[i]);
+	}
+}
+
+void RenderingDeviceGraph::add_custom_list_end() {
+	int32_t command_index;
+	uint32_t instruction_data_size = custom_instruction_list.data.size();
+	uint32_t command_size = sizeof(RecordedCustomListCommand) + instruction_data_size;
+	RecordedCustomListCommand *command = static_cast<RecordedCustomListCommand *>(_allocate_command(command_size, command_index));
+	command->type = RecordedCommand::TYPE_CUSTOM_LIST;
+	command->self_stages = custom_instruction_list.stages;
+	command->instruction_data_size = instruction_data_size;
+	memcpy(command->instruction_data(), custom_instruction_list.data.ptr(), instruction_data_size);
+	_add_command_to_graph(custom_instruction_list.command_trackers.ptr(), custom_instruction_list.command_tracker_usages.ptr(), custom_instruction_list.command_trackers.size(), command_index, command);
+}
+
 void RenderingDeviceGraph::add_texture_clear(RDD::TextureID p_dst, ResourceTracker *p_dst_tracker, const Color &p_color, const RDD::TextureSubresourceRange &p_range) {
 	DEV_ASSERT(p_dst_tracker != nullptr);
 
@@ -2289,15 +2368,16 @@ void RenderingDeviceGraph::end(bool p_reorder_commands, bool p_full_barriers, RD
 			1, // TYPE_BUFFER_COPY
 			1, // TYPE_BUFFER_GET_DATA
 			1, // TYPE_BUFFER_UPDATE
-			4, // TYPE_COMPUTE_LIST
-			3, // TYPE_DRAW_LIST
+			5, // TYPE_COMPUTE_LIST
+			4, // TYPE_DRAW_LIST
+			3, // TYPE_CUSTOM_LIST
 			2, // TYPE_TEXTURE_CLEAR
 			2, // TYPE_TEXTURE_COPY
 			2, // TYPE_TEXTURE_GET_DATA
 			2, // TYPE_TEXTURE_RESOLVE
 			2, // TYPE_TEXTURE_UPDATE
 			2, // TYPE_CAPTURE_TIMESTAMP
-			5, // TYPE_DRIVER_CALLBACK
+			6, // TYPE_DRIVER_CALLBACK
 		};
 
 		commands_sorted.clear();

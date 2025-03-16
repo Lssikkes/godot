@@ -39,6 +39,8 @@
 #include "dxil_hash.h"
 #include "rendering_context_driver_d3d12.h"
 
+#include "drivers/streamline/streamline.h"
+
 // No point in fighting warnings in Mesa.
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -2277,6 +2279,8 @@ Error RenderingDeviceDriverD3D12::command_queue_execute_and_present(CommandQueue
 		}
 	}
 
+	Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_BEGIN_PRESENT);
+
 	HRESULT res;
 	bool any_present_failed = false;
 	for (uint32_t i = 0; i < p_swap_chains.size(); i++) {
@@ -2287,6 +2291,8 @@ Error RenderingDeviceDriverD3D12::command_queue_execute_and_present(CommandQueue
 			any_present_failed = true;
 		}
 	}
+
+	Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_END_PRESENT);
 
 	return any_present_failed ? FAILED : OK;
 }
@@ -2473,6 +2479,9 @@ Error RenderingDeviceDriverD3D12::swap_chain_resize(CommandQueueID p_cmd_queue, 
 		// Very likely the window is minimized, don't create a swap chain.
 		return ERR_SKIP;
 	}
+
+	// Emit event
+	Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_MODIFY_SWAPCHAIN);
 
 	HRESULT res;
 	const bool is_tearing_supported = context_driver->get_tearing_supported();
@@ -6337,6 +6346,10 @@ RenderingDeviceDriverD3D12::RenderingDeviceDriverD3D12(RenderingContextDriverD3D
 }
 
 RenderingDeviceDriverD3D12::~RenderingDeviceDriverD3D12() {
+	if (Streamline::get_singleton()) {
+		Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_BEFORE_DEVICE_DESTROY);
+	}
+
 	glsl_type_singleton_decref();
 }
 
@@ -6377,6 +6390,10 @@ Error RenderingDeviceDriverD3D12::_initialize_device() {
 	} else {
 		PFN_D3D12_CREATE_DEVICE d3d_D3D12CreateDevice = (PFN_D3D12_CREATE_DEVICE)(void *)GetProcAddress(context_driver->lib_d3d12, "D3D12CreateDevice");
 		ERR_FAIL_NULL_V(d3d_D3D12CreateDevice, ERR_CANT_CREATE);
+
+		if (Streamline::get_singleton()->get_internal_parameter(STREAMLINE_INTERNAL_PARAMETER_FUNC_D3D12CreateDevice)) {
+			d3d_D3D12CreateDevice = (PFN_D3D12_CREATE_DEVICE)Streamline::get_singleton()->get_internal_parameter(STREAMLINE_INTERNAL_PARAMETER_FUNC_D3D12CreateDevice);
+		}
 
 		res = d3d_D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(device.GetAddressOf()));
 	}
@@ -6741,12 +6758,16 @@ Error RenderingDeviceDriverD3D12::initialize(uint32_t p_device_index, uint32_t p
 	HRESULT res = adapter->GetDesc(&adapter_desc);
 	ERR_FAIL_COND_V(!SUCCEEDED(res), ERR_CANT_CREATE);
 
+	Streamline::get_singleton()->set_internal_parameter("d3d12_adapter_luid", (void *)&adapter_desc.AdapterLuid);
+
 	// Set the pipeline cache ID based on the adapter information.
 	pipeline_cache_id = String::hex_encode_buffer((uint8_t *)&adapter_desc.AdapterLuid, sizeof(LUID));
 	pipeline_cache_id += "-driver-" + itos(adapter_desc.Revision);
 
 	Error err = _initialize_device();
 	ERR_FAIL_COND_V(err != OK, ERR_CANT_CREATE);
+
+	Streamline::get_singleton()->set_internal_parameter("d3d12_device", (void *)device.Get());
 
 	err = _check_capabilities();
 	ERR_FAIL_COND_V(err != OK, ERR_CANT_CREATE);
@@ -6764,6 +6785,8 @@ Error RenderingDeviceDriverD3D12::initialize(uint32_t p_device_index, uint32_t p
 	ERR_FAIL_COND_V(err != OK, ERR_CANT_CREATE);
 
 	glsl_type_singleton_init_or_ref();
+
+	Streamline::get_singleton()->emit_marker(STREAMLINE_MARKER_AFTER_DEVICE_CREATION);
 
 	return OK;
 }

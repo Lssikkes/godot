@@ -2902,6 +2902,9 @@ void Node3DEditorViewport::_project_settings_changed() {
 
 	const Viewport::AnisotropicFiltering anisotropic_filtering_level = Viewport::AnisotropicFiltering(int(GLOBAL_GET("rendering/textures/default_filters/anisotropic_filtering_level")));
 	viewport->set_anisotropic_filtering_level(anisotropic_filtering_level);
+
+	if(Streamline::get_singleton())
+		Streamline::get_singleton()->update_project_settings();
 }
 
 void Node3DEditorViewport::_notification(int p_what) {

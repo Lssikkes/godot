@@ -836,6 +836,8 @@ void Window::_event_callback(DisplayServer::WindowEvent p_event) {
 		case DisplayServer::WINDOW_EVENT_TITLEBAR_CHANGE: {
 			emit_signal(SNAME("titlebar_changed"));
 		} break;
+		case DisplayServer::WINDOW_EVENT_PCL_PING: {
+		} break;
 	}
 }
 

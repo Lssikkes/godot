@@ -44,6 +44,8 @@
 
 #include "drivers/vulkan/godot_vulkan.h"
 
+class StreamlineContext;
+
 // Design principles:
 // - Vulkan structs are zero-initialized and fields not requiring a non-zero value are omitted (except in cases where expresivity reasons apply).
 class RenderingDeviceDriverVulkan : public RenderingDeviceDriver {

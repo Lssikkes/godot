@@ -5732,6 +5732,54 @@ void RenderingDevice::_free_transfer_workers() {
 }
 
 /***********************/
+/**** CUSTOM LISTS ****/
+/***********************/
+
+RenderingDevice::ComputeListID RenderingDevice::custom_list_begin() {
+	_THREAD_SAFE_METHOD_
+
+	ERR_FAIL_COND_V_MSG(custom_list != nullptr, INVALID_ID, "Only one custom list can be active at the same time.");
+
+	// Lock while compute_list is active.
+	_THREAD_SAFE_LOCK_
+
+	custom_list = memnew(CustomList);
+
+	draw_graph.add_custom_list_begin();
+
+	return ID_TYPE_CUSTOM_LIST;
+}
+
+void RenderingDevice::custom_list_require_texture(CustomListID p_list, RID p_texture, RenderingDeviceCommons::ResourceUsage p_usage) {
+	// Must be called within a custom list, the class mutex is locked during that time
+	ERR_FAIL_COND(p_list != ID_TYPE_CUSTOM_LIST);
+	ERR_FAIL_NULL(custom_list);
+
+	Texture *texture = texture_owner.get_or_null(p_texture);
+	draw_graph.add_custom_list_usage(texture->draw_tracker, (RenderingDeviceGraph::ResourceUsage)p_usage);
+}
+
+void RenderingDevice::custom_list_callback(CustomListID p_list, RDD::CustomRenderGraphCallback p_callback, void *p_custom) {
+	// Must be called within a custom list, the class mutex is locked during that time
+	ERR_FAIL_COND(p_list != ID_TYPE_CUSTOM_LIST);
+	ERR_FAIL_NULL(custom_list);
+
+	draw_graph.add_custom_list_callback(p_callback, p_custom);
+}
+
+void RenderingDevice::custom_list_end() {
+	ERR_FAIL_NULL(custom_list);
+
+	draw_graph.add_custom_list_end();
+
+	memdelete(custom_list);
+	custom_list = nullptr;
+
+	// Compute_list is no longer active.
+	_THREAD_SAFE_UNLOCK_
+}
+
+/***********************/
 /**** COMMAND GRAPH ****/
 /***********************/
 
@@ -6866,7 +6914,9 @@ uint64_t RenderingDevice::get_driver_resource(DriverResource p_resource, RID p_r
 			break;
 		case DRIVER_RESOURCE_TEXTURE:
 		case DRIVER_RESOURCE_TEXTURE_VIEW:
-		case DRIVER_RESOURCE_TEXTURE_DATA_FORMAT: {
+		case DRIVER_RESOURCE_TEXTURE_DATA_FORMAT:
+		case DRIVER_RESOURCE_TEXTURE_DEVICE_MEMORY:
+		case DRIVER_RESOURCE_TEXTURE_USAGE_FLAGS: {
 			Texture *tex = texture_owner.get_or_null(p_rid);
 			ERR_FAIL_NULL_V(tex, 0);
 
@@ -7349,6 +7399,8 @@ void RenderingDevice::_bind_methods() {
 	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_TEXTURE);
 	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_TEXTURE_VIEW);
 	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_TEXTURE_DATA_FORMAT);
+	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_TEXTURE_DEVICE_MEMORY);
+	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_TEXTURE_USAGE_FLAGS);
 	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_SAMPLER);
 	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_UNIFORM_SET);
 	BIND_ENUM_CONSTANT(DRIVER_RESOURCE_BUFFER);

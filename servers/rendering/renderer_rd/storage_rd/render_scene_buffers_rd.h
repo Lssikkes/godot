@@ -64,6 +64,7 @@ class RenderSceneBuffersRD : public RenderSceneBuffers {
 	GDCLASS(RenderSceneBuffersRD, RenderSceneBuffers);
 
 private:
+	bool upscaler_ready = false;
 	bool can_be_storage = true;
 	uint32_t max_cluster_elements = 512;
 	RD::DataFormat base_data_format = RD::DATA_FORMAT_R16G16B16A16_SFLOAT;
@@ -78,6 +79,7 @@ private:
 	// The internal size of the textures we render 3D to in case we render at a lower resolution and upscale
 	Size2i internal_size = Size2i(0, 0);
 	RS::ViewportScaling3DMode scaling_3d_mode = RS::VIEWPORT_SCALING_3D_MODE_OFF;
+	bool frame_generation = false;
 	float fsr_sharpness = 0.2f;
 	float texture_mipmap_bias = 0.0f;
 	RS::ViewportAnisotropicFiltering anisotropic_filtering_level = RS::VIEWPORT_ANISOTROPY_4X;
@@ -225,13 +227,13 @@ public:
 	Ref<RenderBufferCustomDataRD> get_custom_data(const StringName &p_name) const;
 
 	// Getters
-
 	_FORCE_INLINE_ RID get_render_target() const { return render_target; }
 	_FORCE_INLINE_ uint32_t get_view_count() const { return view_count; }
 	_FORCE_INLINE_ Size2i get_internal_size() const { return internal_size; }
 	_FORCE_INLINE_ Size2i get_target_size() const { return target_size; }
 	_FORCE_INLINE_ RS::ViewportScaling3DMode get_scaling_3d_mode() const { return scaling_3d_mode; }
 	_FORCE_INLINE_ float get_fsr_sharpness() const { return fsr_sharpness; }
+	_FORCE_INLINE_ bool get_frame_generation() const { return frame_generation; }
 	_FORCE_INLINE_ RS::ViewportMSAA get_msaa_3d() const { return msaa_3d; }
 	_FORCE_INLINE_ RD::TextureSamples get_texture_samples() const { return texture_samples; }
 	_FORCE_INLINE_ RS::ViewportScreenSpaceAA get_screen_space_aa() const { return screen_space_aa; }
@@ -292,6 +294,9 @@ public:
 
 	// Upscaled.
 	void ensure_upscaled();
+
+	_FORCE_INLINE_ bool get_upscaler_ready() const { return upscaler_ready; }
+	_FORCE_INLINE_ void set_upscaler_ready(bool ready) { upscaler_ready = ready; }
 
 	_FORCE_INLINE_ bool has_upscaled_texture() const {
 		return has_texture(RB_SCOPE_BUFFERS, RB_TEX_COLOR_UPSCALED);

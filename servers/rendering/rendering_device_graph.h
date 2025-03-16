@@ -83,6 +83,15 @@ public:
 		Type type = TYPE_NONE;
 	};
 
+	struct CustomListInstruction {
+		enum Type {
+			TYPE_NONE,
+			TYPE_USER_COMMAND,
+		};
+
+		Type type = TYPE_NONE;
+	};
+
 	struct RecordedCommand {
 		enum Type {
 			TYPE_NONE,
@@ -92,6 +101,7 @@ public:
 			TYPE_BUFFER_UPDATE,
 			TYPE_COMPUTE_LIST,
 			TYPE_DRAW_LIST,
+			TYPE_CUSTOM_LIST,
 			TYPE_TEXTURE_CLEAR,
 			TYPE_TEXTURE_COPY,
 			TYPE_TEXTURE_GET_DATA,
@@ -163,6 +173,8 @@ public:
 		ResourceUsage draw_list_usage = RESOURCE_USAGE_NONE;
 		int32_t compute_list_index = -1;
 		ResourceUsage compute_list_usage = RESOURCE_USAGE_NONE;
+		int32_t custom_list_index = -1;
+		ResourceUsage custom_list_usage = RESOURCE_USAGE_NONE;
 		ResourceUsage usage = RESOURCE_USAGE_NONE;
 		BitField<RDD::BarrierAccessBits> usage_access;
 		RDD::BufferID buffer_driver_id;
@@ -189,6 +201,7 @@ public:
 				write_command_or_list_index = -1;
 				draw_list_index = -1;
 				compute_list_index = -1;
+				custom_list_index = -1;
 				texture_slice_command_index = -1;
 				write_command_list_enabled = false;
 			}
@@ -270,6 +283,10 @@ private:
 		bool split_cmd_buffer = false;
 	};
 
+	struct CustomInstructionList : InstructionList {
+		// No extra contents.
+	};
+
 	struct RecordedCommandSort {
 		uint32_t level = 0;
 		uint32_t priority = 0;
@@ -345,6 +362,18 @@ private:
 	struct RecordedComputeListCommand : RecordedCommand {
 		uint32_t instruction_data_size = 0;
 		uint32_t breadcrumb = 0;
+
+		_FORCE_INLINE_ uint8_t *instruction_data() {
+			return reinterpret_cast<uint8_t *>(&this[1]);
+		}
+
+		_FORCE_INLINE_ const uint8_t *instruction_data() const {
+			return reinterpret_cast<const uint8_t *>(&this[1]);
+		}
+	};
+
+	struct RecordedCustomListCommand : RecordedCommand {
+		uint32_t instruction_data_size = 0;
 
 		_FORCE_INLINE_ uint8_t *instruction_data() {
 			return reinterpret_cast<uint8_t *>(&this[1]);
@@ -657,6 +686,11 @@ private:
 		uint32_t set_index = 0;
 	};
 
+	struct CustomListUserCommandInstruction : CustomListInstruction {
+		RDD::CustomRenderGraphCallback callback;
+		void *custom;
+	};
+
 	struct BarrierGroup {
 		BitField<RDD::PipelineStageBits> src_stages;
 		BitField<RDD::PipelineStageBits> dst_stages;
@@ -709,6 +743,7 @@ private:
 	int32_t command_label_index = -1;
 	DrawInstructionList draw_instruction_list;
 	ComputeInstructionList compute_instruction_list;
+	CustomInstructionList custom_instruction_list;
 	uint32_t command_count = 0;
 	uint32_t command_label_count = 0;
 	LocalVector<RecordedCommandListNode> command_list_nodes;
@@ -742,6 +777,7 @@ private:
 	RecordedCommand *_allocate_command(uint32_t p_command_size, int32_t &r_command_index);
 	DrawListInstruction *_allocate_draw_list_instruction(uint32_t p_instruction_size);
 	ComputeListInstruction *_allocate_compute_list_instruction(uint32_t p_instruction_size);
+	CustomListInstruction *_allocate_custom_list_instruction(uint32_t p_instruction_size);
 	void _check_discardable_attachment_dependency(ResourceTracker *p_resource_tracker, int32_t p_previous_command_index, int32_t p_command_index);
 	void _add_command_to_graph(ResourceTracker **p_resource_trackers, ResourceUsage *p_resource_usages, uint32_t p_resource_count, int32_t p_command_index, RecordedCommand *r_command);
 	void _add_texture_barrier_to_command(RDD::TextureID p_texture_id, BitField<RDD::BarrierAccessBits> p_src_access, BitField<RDD::BarrierAccessBits> p_dst_access, ResourceUsage p_prev_usage, ResourceUsage p_next_usage, RDD::TextureSubresourceRange p_subresources, LocalVector<RDD::TextureBarrier> &r_barrier_vector, int32_t &r_barrier_index, int32_t &r_barrier_count);
@@ -751,6 +787,7 @@ private:
 	void _run_compute_list_command(RDD::CommandBufferID p_command_buffer, const uint8_t *p_instruction_data, uint32_t p_instruction_data_size);
 	void _get_draw_list_render_pass_and_framebuffer(const RecordedDrawListCommand *p_draw_list_command, RDD::RenderPassID &r_render_pass, RDD::FramebufferID &r_framebuffer);
 	void _run_draw_list_command(RDD::CommandBufferID p_command_buffer, const uint8_t *p_instruction_data, uint32_t p_instruction_data_size);
+	void _run_custom_list_command(RDD::CommandBufferID p_command_buffer, const uint8_t *p_instruction_data, uint32_t p_instruction_data_size);
 	void _add_draw_list_begin(FramebufferCache *p_framebuffer_cache, RDD::RenderPassID p_render_pass, RDD::FramebufferID p_framebuffer, Rect2i p_region, VectorView<AttachmentOperation> p_attachment_operations, VectorView<RDD::RenderPassClearValue> p_attachment_clear_values, bool p_uses_color, bool p_uses_depth, uint32_t p_breadcrumb, bool p_split_cmd_buffer);
 	void _run_secondary_command_buffer_task(const SecondaryCommandBuffer *p_secondary);
 	void _wait_for_secondary_command_buffer_tasks();
@@ -807,6 +844,11 @@ public:
 	void add_draw_list_usage(ResourceTracker *p_tracker, ResourceUsage p_usage);
 	void add_draw_list_usages(VectorView<ResourceTracker *> p_trackers, VectorView<ResourceUsage> p_usages);
 	void add_draw_list_end();
+	void add_custom_list_begin();
+	void add_custom_list_callback(RDD::CustomRenderGraphCallback p_callback, void *p_custom);
+	void add_custom_list_usage(ResourceTracker *p_tracker, ResourceUsage p_usage);
+	void add_custom_list_usages(VectorView<ResourceTracker *> p_trackers, VectorView<ResourceUsage> p_usages);
+	void add_custom_list_end();
 	void add_texture_clear(RDD::TextureID p_dst, ResourceTracker *p_dst_tracker, const Color &p_color, const RDD::TextureSubresourceRange &p_range);
 	void add_texture_copy(RDD::TextureID p_src, ResourceTracker *p_src_tracker, RDD::TextureID p_dst, ResourceTracker *p_dst_tracker, VectorView<RDD::TextureCopyRegion> p_texture_copy_regions);
 	void add_texture_get_data(RDD::TextureID p_src, ResourceTracker *p_src_tracker, RDD::BufferID p_dst, VectorView<RDD::BufferTextureCopyRegion> p_buffer_texture_copy_regions, ResourceTracker *p_dst_tracker = nullptr);

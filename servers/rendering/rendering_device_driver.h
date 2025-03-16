@@ -50,6 +50,8 @@
 #include "servers/rendering/rendering_context_driver.h"
 #include "servers/rendering/rendering_device_commons.h"
 
+#include "drivers/streamline/streamline.h"
+
 #include <algorithm>
 
 // This may one day be used in Godot for interoperability between C arrays, Vector and LocalVector.
@@ -166,6 +168,9 @@ public:
 	DEFINE_ID(QueryPool);
 	DEFINE_ID(Fence);
 	DEFINE_ID(Semaphore);
+
+	// Callbacks
+	typedef void (*CustomRenderGraphCallback)(void *p_custom, CommandBufferID p_command_buffer);
 
 public:
 	/*****************/
