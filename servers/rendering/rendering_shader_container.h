@@ -59,7 +59,7 @@ protected:
 		uint64_t vertex_input_mask = 0;
 		uint32_t fragment_output_mask = 0;
 		uint32_t specialization_constants_count = 0;
-		uint32_t is_compute = 0;
+		RenderingDeviceCommons::PipelineType pipeline_type = RenderingDeviceCommons::PIPELINE_TYPE_RASTERIZATION;
 		uint32_t has_multiview = 0;
 		uint32_t has_dynamic_buffers = 0;
 		uint32_t compute_local_size[3] = {};
@@ -228,6 +228,7 @@ protected:
 	struct ReflectShader {
 		uint64_t vertex_input_mask = 0;
 		uint32_t fragment_output_mask = 0;
+		RenderingDeviceCommons::PipelineType pipeline_type = RenderingDeviceCommons::PIPELINE_TYPE_RASTERIZATION;
 		uint32_t compute_local_size[3] = {};
 		uint32_t push_constant_size = 0;
 		bool has_multiview = false;

@@ -939,7 +939,7 @@ class Godot private constructor(val context: Context) {
 			renderingDeviceSource = "CommandLine"
 			renderingDevice = cmdline.get(index + 1)
 		}
-		val result = ("forward_plus" == renderer || "mobile" == renderer) && "vulkan" == renderingDevice
+		val result = ("forward_plus" == renderer || "mobile" == renderer || "raytracing" == renderer) && "vulkan" == renderingDevice
 		Log.d(TAG, """usesVulkan(): ${result}
 			renderingDevice: ${renderingDevice} (${renderingDeviceSource})
 			renderer: ${renderer} (${rendererSource})""")
